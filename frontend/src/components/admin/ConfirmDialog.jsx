@@ -1,17 +1,22 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
+const fadeHidden    = { opacity: 0 };
+const fadeVisible   = { opacity: 1 };
+const dialogHidden  = { scale: 0.95, opacity: 0 };
+const dialogVisible = { scale: 1,    opacity: 1 };
+
 export default function ConfirmDialog({ open, title = 'Are you sure?', onCancel, onConfirm }) {
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
-          initial= opacity: 0  animate= opacity: 1  exit= opacity: 0 
+          initial={fadeHidden} animate={fadeVisible} exit={fadeHidden}
           onClick={onCancel}
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
-            initial= scale: 0.95, opacity: 0  animate= scale: 1, opacity: 1  exit= scale: 0.95, opacity: 0 
+            initial={dialogHidden} animate={dialogVisible} exit={dialogHidden}
             className="glass-strong rounded-2xl p-5 max-w-sm w-full grid gap-3"
           >
             <h3 className="font-display text-lg gold-text">{title}</h3>

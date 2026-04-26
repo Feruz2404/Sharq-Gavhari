@@ -7,6 +7,8 @@ import { useLanguageStore } from '../../stores/languageStore.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
 
+const hoverProps = { y: -2 };
+
 export default function ProductCard({ product, basePath = '/product' }) {
   const lang = useLanguageStore((s) => s.language);
   const t = useT();
@@ -16,7 +18,7 @@ export default function ProductCard({ product, basePath = '/product' }) {
   const unavailable = !product.is_available;
 
   return (
-    <motion.div whileHover= y: -2  className="glass overflow-hidden flex flex-col">
+    <motion.div whileHover={hoverProps} className="glass overflow-hidden flex flex-col">
       <Link to={`${basePath}/${product.id}`} className="block">
         <div className="relative">
           <ImageWithFallback src={product.image_url} alt={name} className="w-full aspect-[4/3] object-cover" />

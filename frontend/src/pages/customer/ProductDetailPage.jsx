@@ -10,6 +10,9 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
 
+const fadeInit = { opacity: 0 };
+const fadeAnim = { opacity: 1 };
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const lang = useLanguageStore((s) => s.language);
@@ -37,7 +40,7 @@ export default function ProductDetailPage() {
       <div className="max-w-3xl mx-auto px-4 py-4">
         <Link to="/menu" className="btn-ghost !py-1 !px-2 text-sm">{t('nav.back')}</Link>
       </div>
-      <motion.div initial= opacity: 0  animate= opacity: 1  className="max-w-3xl mx-auto px-4 grid gap-4">
+      <motion.div initial={fadeInit} animate={fadeAnim} className="max-w-3xl mx-auto px-4 grid gap-4">
         <ImageWithFallback src={p.image_url} alt={name} className="w-full aspect-[16/10] object-cover rounded-2xl" />
         <div className="glass p-4 grid gap-3">
           <div className="flex justify-between items-start gap-3">

@@ -13,6 +13,9 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
 
+const fadeInit = { opacity: 0 };
+const fadeAnim = { opacity: 1 };
+
 export default function MenuPage() {
   const lang = useLanguageStore((s) => s.language);
   const settings = useSettingsStore((s) => s.settings);
@@ -67,7 +70,7 @@ export default function MenuPage() {
           </section>
         )}
         <section>
-          <motion.div initial= opacity: 0  animate= opacity: 1  className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <motion.div initial={fadeInit} animate={fadeAnim} className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
             {filtered.length === 0 && <div className="col-span-full text-center text-white/50 py-10">{t('common.empty')}</div>}
           </motion.div>
