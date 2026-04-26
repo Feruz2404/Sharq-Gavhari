@@ -7,8 +7,8 @@ export const useAuthStore = create(persist(
     token: null,
     admin: null,
 
-    login: async (email, password) => {
-      const { token, admin } = await authService.login(email, password);
+    login: async (identifier, password) => {
+      const { token, admin } = await authService.login(identifier, password);
       set({ token, admin });
       return admin;
     },

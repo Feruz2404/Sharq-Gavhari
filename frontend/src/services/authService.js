@@ -1,6 +1,8 @@
 import { api } from './api.js';
 
 export const authService = {
-  login: (email, password) => api.post('/auth/login', { email, password }).then((r) => r.data),
-  me:    () => api.get('/auth/me').then((r) => r.data),
+  // Sends both `login` and `email` keys for backend compatibility.
+  login: (identifier, password) =>
+    api.post('/auth/login', { login: identifier, email: identifier, password }).then((r) => r.data),
+  me: () => api.get('/auth/me').then((r) => r.data),
 };

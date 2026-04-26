@@ -4,12 +4,24 @@ const { supabase } = require('../config/supabase');
 
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'email and password are required' });
+    const body = req.body || {};
+    const identifier = String(body.login || body.email || '').trim();
+    const password = body.password;
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'login and password are required' });
+    }
 
-    const { data: user, error } = await supabase
-      .from('users').select('*').eq('email', email).maybeSingle();
-    if (error) throw error;
+    // Match by email first, then by name. Two scoped queries instead of an OR
+    // string to avoid any chance of filter-injection on the identifier value.
+    let { data: user, error: e1 } = await supabase
+      .from('users').select('*').eq('email', identifier).maybeSingle();
+    if (e1) throw e1;
+    if (!user) {
+      const { data: user2, error: e2 } = await supabase
+        .from('users').select('*').eq('name', identifier).maybeSingle();
+      if (e2) throw e2;
+      user = user2;
+    }
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
     const ok = await bcrypt.compare(password, user.password_hash);
