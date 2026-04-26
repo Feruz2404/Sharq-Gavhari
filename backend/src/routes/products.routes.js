@@ -1,0 +1,14 @@
+const router = require('express').Router();
+const ctrl = require('../controllers/products.controller');
+const { requireAdmin } = require('../middleware/auth');
+
+router.get('/', ctrl.list);
+router.get('/category/:categoryId', ctrl.byCategory);
+router.get('/:id', ctrl.getOne);
+router.post('/', requireAdmin, ctrl.create);
+router.put('/:id', requireAdmin, ctrl.update);
+router.patch('/:id/availability', requireAdmin, ctrl.setAvailability);
+router.patch('/:id/active', requireAdmin, ctrl.setActive);
+router.delete('/:id', requireAdmin, ctrl.remove);
+
+module.exports = router;
