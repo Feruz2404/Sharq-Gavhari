@@ -5,6 +5,28 @@ import Icon from './Icon.jsx';
 const ToastCtx = createContext(null);
 let idSeq = 0;
 
+const toastInitial = {
+  opacity: 0,
+  y: -8,
+  scale: 0.98,
+};
+
+const toastAnimate = {
+  opacity: 1,
+  y: 0,
+  scale: 1,
+};
+
+const toastExit = {
+  opacity: 0,
+  y: -8,
+  scale: 0.98,
+};
+
+const toastTransition = {
+  duration: 0.22,
+};
+
 export function ToastProvider({ children }) {
   const [items, setItems] = useState([]);
   const timers = useRef(new Map());
@@ -46,10 +68,10 @@ export function ToastProvider({ children }) {
             return (
               <motion.div
                 key={t.id}
-                initial= opacity: 0, y: -8, scale: 0.98 
-                animate= opacity: 1, y: 0, scale: 1 
-                exit= opacity: 0, y: -8, scale: 0.98 
-                transition= duration: 0.18 
+                initial={toastInitial}
+                animate={toastAnimate}
+                exit={toastExit}
+                transition={toastTransition}
                 className={`glass-strong px-3.5 py-2.5 flex items-start gap-2.5 ${tone}`}
                 role="status"
               >
@@ -70,7 +92,6 @@ export function ToastProvider({ children }) {
 export function useToast() {
   const v = useContext(ToastCtx);
   if (!v) {
-    // Safe no-op fallback in case a component renders outside the provider.
     return { success: () => {}, error: () => {}, info: () => {} };
   }
   return v;

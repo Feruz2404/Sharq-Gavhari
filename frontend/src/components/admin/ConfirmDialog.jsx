@@ -1,8 +1,23 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import Icon from '../common/Icon.jsx';
 
-const overlay = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
-const dialog  = { initial: { scale: 0.96, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.96, opacity: 0 } };
+const overlay = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit:    { opacity: 0 },
+};
+
+const dialog = {
+  initial: { scale: 0.96, opacity: 0 },
+  animate: { scale: 1,    opacity: 1 },
+  exit:    { scale: 0.96, opacity: 0 },
+};
+
+const dialogTransition = {
+  type: 'spring',
+  stiffness: 380,
+  damping: 30,
+};
 
 export default function ConfirmDialog({ open, title = 'Are you sure?', description, onCancel, onConfirm, danger = true }) {
   return (
@@ -16,7 +31,7 @@ export default function ConfirmDialog({ open, title = 'Are you sure?', descripti
           <motion.div
             onClick={(e) => e.stopPropagation()}
             {...dialog}
-            transition= type: 'spring', stiffness: 380, damping: 30 
+            transition={dialogTransition}
             className="glass-strong rounded-2xl p-5 max-w-sm w-full grid gap-3"
           >
             <div className="flex items-start gap-3">

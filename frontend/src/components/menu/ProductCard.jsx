@@ -8,7 +8,15 @@ import { useLanguageStore } from '../../stores/languageStore.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
 
-const hover = { y: -3 };
+const hover = {
+  y: -3,
+};
+
+const cardTransition = {
+  type: 'spring',
+  stiffness: 320,
+  damping: 24,
+};
 
 export default function ProductCard({ product, basePath = '/product' }) {
   const lang = useLanguageStore((s) => s.language);
@@ -19,7 +27,7 @@ export default function ProductCard({ product, basePath = '/product' }) {
   const unavailable = !product.is_available;
 
   return (
-    <motion.div whileHover={hover} transition= type: 'spring', stiffness: 320, damping: 24 
+    <motion.div whileHover={hover} transition={cardTransition}
       className="group glass overflow-hidden flex flex-col">
       <Link to={`${basePath}/${product.id}`} className="block relative">
         <div className="relative aspect-[4/3] overflow-hidden">

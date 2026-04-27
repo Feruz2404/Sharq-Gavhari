@@ -22,6 +22,12 @@ export default function ImageUpload({ value, onChange, bucket = 'restaurant-asse
   const inputRef = useRef(null);
   const toast = useToast();
 
+  const thumbStyle = {
+    width: 80,
+    height: 80,
+    aspectRatio: aspect,
+  };
+
   const upload = async (file) => {
     if (!file) return;
     if (!/^image\//.test(file.type)) { setErr('Please select an image file'); return; }
@@ -55,7 +61,7 @@ export default function ImageUpload({ value, onChange, bucket = 'restaurant-asse
           drag ? 'border-gold/60 bg-gold/5' : 'border-white/10 bg-white/[0.03]'
         }`}
       >
-        <div className="shrink-0 rounded-xl overflow-hidden bg-white/5 border border-white/10" style= width: 80, height: 80, aspectRatio: aspect >
+        <div className="shrink-0 rounded-xl overflow-hidden bg-white/5 border border-white/10" style={thumbStyle}>
           <ImageWithFallback src={value} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0 grid gap-1.5">

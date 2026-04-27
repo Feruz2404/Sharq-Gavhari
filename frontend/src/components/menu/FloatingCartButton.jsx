@@ -5,8 +5,21 @@ import { useCartStore } from '../../stores/cartStore.js';
 import { formatPrice } from '../../utils/formatPrice.js';
 import { useT } from '../../locales/useT.js';
 
-const hidden  = { y: 100, opacity: 0 };
-const visible = { y: 0,   opacity: 1 };
+const hidden = {
+  y: 100,
+  opacity: 0,
+};
+
+const visible = {
+  y: 0,
+  opacity: 1,
+};
+
+const cartTransition = {
+  type: 'spring',
+  stiffness: 380,
+  damping: 32,
+};
 
 export default function FloatingCartButton({ to = '/cart' }) {
   const t = useT();
@@ -18,7 +31,7 @@ export default function FloatingCartButton({ to = '/cart' }) {
       {count > 0 && (
         <motion.div
           initial={hidden} animate={visible} exit={hidden}
-          transition= type: 'spring', stiffness: 380, damping: 32 
+          transition={cartTransition}
           className="fixed bottom-4 inset-x-4 z-30 flex justify-center pointer-events-none"
         >
           <Link

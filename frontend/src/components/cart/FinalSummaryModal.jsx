@@ -4,8 +4,23 @@ import { useCartStore } from '../../stores/cartStore.js';
 import { formatPrice } from '../../utils/formatPrice.js';
 import { useT } from '../../locales/useT.js';
 
-const overlay = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
-const sheet   = { initial: { y: 80, opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: 80, opacity: 0 } };
+const overlay = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit:    { opacity: 0 },
+};
+
+const sheet = {
+  initial: { y: 80, opacity: 0 },
+  animate: { y: 0,  opacity: 1 },
+  exit:    { y: 80, opacity: 0 },
+};
+
+const sheetTransition = {
+  type: 'spring',
+  stiffness: 360,
+  damping: 30,
+};
 
 export default function FinalSummaryModal({ open, onClose }) {
   const t = useT();
@@ -24,7 +39,7 @@ export default function FinalSummaryModal({ open, onClose }) {
           <motion.div
             onClick={(e) => e.stopPropagation()}
             {...sheet}
-            transition= type: 'spring', stiffness: 360, damping: 30 
+            transition={sheetTransition}
             className="glass-strong w-full max-w-md rounded-3xl p-5 grid gap-3 relative"
           >
             <button
