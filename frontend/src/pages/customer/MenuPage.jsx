@@ -21,9 +21,9 @@ const heroFade = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }
  *
  * Structure (post-cleanup):
  *   1. Sticky header (with embedded search)
- *   2. Hero / welcome banner   —  shown only when not searching/filtering
- *   3. Categories grid         —  shown only when not searching/filtering
- *   4. Filtered results grid   —  shown only when searching/filtering
+ *   2. Hero / welcome banner   -  shown only when not searching/filtering
+ *   3. Categories grid         -  shown only when not searching/filtering
+ *   4. Filtered results grid   -  shown only when searching/filtering
  *      (with category-strip chip filter on top)
  *
  * Removed: old Featured row and the duplicate "general menu" grid.
@@ -78,9 +78,14 @@ export default function MenuPage() {
   const restaurantName = (settings && settings.restaurant_name) || 'Sharq Gavhari';
   const isFiltering = !!q.trim() || activeCat !== 'all';
 
+  // Named local const for the header's embedded search prop. Using a named
+  // binding avoids JSX double-brace literals like search= ...  which can
+  // be misread by tooling.
+  const headerSearch = { value: q, onChange: setQ };
+
   return (
     <div className="min-h-screen pb-32">
-      <CustomerHeader variant="home" search= value: q, onChange: setQ  />
+      <CustomerHeader variant="home" search={headerSearch} />
 
       <main className="max-w-6xl mx-auto px-4 pt-5 md:pt-7 pb-6 grid gap-7 md:gap-9">
         {loading ? (
