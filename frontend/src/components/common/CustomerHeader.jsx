@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
 import AdminAccessButton from './AdminAccessButton.jsx';
+import InstallAppButton from '../pwa/InstallAppButton.jsx';
 import Icon from './Icon.jsx';
 import { useSettingsStore } from '../../stores/settingsStore.js';
 import { useCartStore } from '../../stores/cartStore.js';
@@ -29,7 +30,9 @@ export default function CustomerHeader({ variant = 'home', backTo = '/menu', tit
                 className="w-9 h-9 rounded-full object-cover ring-1 ring-gold/40"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-sm">SG</div>
+              <div className="w-9 h-9 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-sm">
+                SG
+              </div>
             )}
             <div className="min-w-0">
               <div className="font-display text-lg gold-text leading-tight truncate">
@@ -40,7 +43,9 @@ export default function CustomerHeader({ variant = 'home', backTo = '/menu', tit
                   {t('common.table')} · #{tableNumber}
                 </div>
               ) : (
-                <div className="text-[10px] text-white/40 uppercase tracking-[0.18em] mt-0.5">Premium Cuisine</div>
+                <div className="text-[10px] text-white/40 uppercase tracking-[0.18em] mt-0.5">
+                  Premium Cuisine
+                </div>
               )}
             </div>
           </div>
@@ -55,6 +60,7 @@ export default function CustomerHeader({ variant = 'home', backTo = '/menu', tit
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <InstallAppButton variant="icon" />
           <AdminAccessButton />
         </div>
       </div>

@@ -20,6 +20,8 @@ export default {
     total: 'Итого',
     table: 'Стол',
     unavailable: 'Недоступно',
+    install: 'Установить',
+    installApp: 'Установить приложение',
     finalMessage: "Пожалуйста, покажите этот список официанту.",
   },
   admin: {

@@ -20,6 +20,8 @@ export default {
     total: 'Total',
     table: 'Table',
     unavailable: 'Unavailable',
+    install: 'Install',
+    installApp: 'Install app',
     finalMessage: 'Please show this list to the waiter.',
   },
   admin: {

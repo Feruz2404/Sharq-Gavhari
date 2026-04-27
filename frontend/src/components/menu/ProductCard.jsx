@@ -8,15 +8,14 @@ import { useLanguageStore } from '../../stores/languageStore.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
 
-const hover = {
-  y: -3,
-};
+const hover = { y: -3 };
+const cardTransition = { type: 'spring', stiffness: 320, damping: 24 };
 
-const cardTransition = {
-  type: 'spring',
-  stiffness: 320,
-  damping: 24,
-};
+const FALLBACK_GRADIENT = (
+  <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/20 to-zinc-950 flex items-center justify-center">
+    <span className="font-display text-3xl text-gold/40">SG</span>
+  </div>
+);
 
 export default function ProductCard({ product, basePath = '/product' }) {
   const lang = useLanguageStore((s) => s.language);
@@ -25,20 +24,32 @@ export default function ProductCard({ product, basePath = '/product' }) {
   const name = getLocalizedField(product, 'name', lang);
   const desc = getLocalizedField(product, 'description', lang);
   const unavailable = !product.is_available;
+  const onSale =
+    product.discount_price &&
+    Number(product.discount_price) > 0 &&
+    Number(product.discount_price) < Number(product.price);
 
   return (
-    <motion.div whileHover={hover} transition={cardTransition}
-      className="group glass overflow-hidden flex flex-col">
+    <motion.div
+      whileHover={hover}
+      transition={cardTransition}
+      className="group glass overflow-hidden flex flex-col"
+    >
       <Link to={`${basePath}/${product.id}`} className="block relative">
         <div className="relative aspect-[4/3] overflow-hidden">
-          <ImageWithFallback src={product.image_url} alt={name} className="w-full h-full object-cover transition duration-500 group-hover:scale-[1.04]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition" />
+          <ImageWithFallback
+            src={product.image_url}
+            alt={name}
+            fallback={FALLBACK_GRADIENT}
+            className="w-full h-full object-cover transition duration-500 group-hover:scale-[1.04]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-transparent" />
           {unavailable && (
             <span className="absolute top-2 left-2 text-[10px] uppercase tracking-wider bg-red-600/85 text-white px-2 py-1 rounded-md">
               {t('common.unavailable')}
             </span>
           )}
-          {product.discount_price && Number(product.discount_price) > 0 && Number(product.discount_price) < Number(product.price) && (
+          {onSale && (
             <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wider bg-gold text-black px-2 py-1 rounded-md font-semibold">
               Sale
             </span>

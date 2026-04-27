@@ -20,6 +20,8 @@ export default {
     total: 'Jami',
     table: 'Stol',
     unavailable: 'Mavjud emas',
+    install: 'O\u02BBrnatish',
+    installApp: 'Ilovani o\u02BBrnatish',
     finalMessage: "Iltimos, ushbu ro‘yxatni ofitsantga ko‘rsating.",
   },
   admin: {
