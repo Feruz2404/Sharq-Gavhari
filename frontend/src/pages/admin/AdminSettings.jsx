@@ -5,10 +5,28 @@ import { useToast } from '../../components/common/Toast.jsx';
 import { useT } from '../../locales/useT.js';
 
 const LANGS = [
-  { value: 'uz', label: 'Oʻzbekcha' },
-  { value: 'ru', label: 'Pусский' },
+  { value: 'uz', label: 'O\u02BBzbekcha' },
+  { value: 'ru', label: 'P\u0443сский' },
   { value: 'en', label: 'English' },
 ];
+
+// Uzbek copy for the brand uploads. We render literal modifier-letter
+// turned-comma (\u02BB) so the typography matches the rest of the UI.
+const LOGO_UPLOAD     = 'Logotip yuklash';
+const LOGO_CHANGE     = 'Logotipni o\u02BBzgartirish';
+const BG_UPLOAD       = 'Fon rasmi yuklash';
+const BG_CHANGE       = 'Fon rasmini o\u02BBzgartirish';
+const REMOVE_LABEL    = 'O\u02BBchirish';
+const LOGO_PLACEHOLDER =
+  'Logotip rasmini bu yerga tashlang yoki tugmani bosing';
+const BG_PLACEHOLDER =
+  'Fon rasmini bu yerga tashlang yoki tugmani bosing';
+const LOGO_HELPER =
+  'JPG, PNG yoki WEBP \u2014 5MB gacha. Bu logotip header va menyuda ko\u02BBrinadi.';
+const BG_HELPER =
+  'JPG, PNG yoki WEBP \u2014 5MB gacha. Bu rasm mijoz menyusidagi fon/hero qismida ko\u02BBrinadi.';
+const PREVIEW_HINT =
+  'Bu yerda logo, fon, restoran nomi va asosiy rang real vaqtda ko\u02BBrinadi.';
 
 export default function AdminSettings() {
   const t = useT();
@@ -89,7 +107,7 @@ export default function AdminSettings() {
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl gold-text">{t('admin.settings')}</h1>
           <button disabled={busy} type="submit" className="btn-gold">
-            {busy ? '…' : t('common.save')}
+            {busy ? '\u2026' : t('common.save')}
           </button>
         </div>
 
@@ -105,12 +123,17 @@ export default function AdminSettings() {
               <input className="input" value={f.phone} onChange={set('phone')} placeholder="+998 ..." />
             </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid md:grid-cols-2 gap-4">
             <ImageUpload
               value={f.logo_url}
               onChange={set('logo_url')}
               label={t('admin.logo')}
               bucket="logos"
+              uploadLabel={LOGO_UPLOAD}
+              changeLabel={LOGO_CHANGE}
+              removeLabel={REMOVE_LABEL}
+              placeholder={LOGO_PLACEHOLDER}
+              helperText={LOGO_HELPER}
             />
             <ImageUpload
               value={f.background_image_url}
@@ -118,6 +141,11 @@ export default function AdminSettings() {
               label={t('admin.background')}
               bucket="backgrounds"
               aspect="4 / 3"
+              uploadLabel={BG_UPLOAD}
+              changeLabel={BG_CHANGE}
+              removeLabel={REMOVE_LABEL}
+              placeholder={BG_PLACEHOLDER}
+              helperText={BG_HELPER}
             />
           </div>
         </section>
@@ -164,39 +192,42 @@ export default function AdminSettings() {
       </div>
 
       <aside className="grid gap-3 min-w-0">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live preview</div>
-        <div className="rounded-3xl border border-white/10 overflow-hidden shadow-soft relative aspect-[3/4] bg-black">
-          <div className="absolute inset-0 bg-cover bg-center" style={previewBgStyle} aria-hidden="true" />
-          {!f.background_image_url && (
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/30 via-zinc-950 to-black" aria-hidden="true" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black" aria-hidden="true" />
-          <div className="relative z-10 h-full p-5 flex flex-col">
-            <div className="flex items-center gap-2.5">
-              {f.logo_url ? (
-                <img src={f.logo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-gold/40" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-sm">SG</div>
-              )}
-              <div className="font-display text-lg leading-tight truncate" style={previewBrandStyle}>
-                {f.restaurant_name || 'Sharq Gavhari'}
+          <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live preview</div>
+          <div className="rounded-3xl border border-white/10 overflow-hidden shadow-soft relative aspect-[3/4] bg-black">
+            {/* Layer 1: uploaded background OR elegant dark gradient fallback */}
+            {f.background_image_url ? (
+              <div className="absolute inset-0 bg-cover bg-center" style={previewBgStyle} aria-hidden="true" />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-900/30 via-zinc-950 to-black" aria-hidden="true" />
+            )}
+            {/* Layer 2: dark graded overlay so brand text stays legible */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black" aria-hidden="true" />
+            <div className="relative z-10 h-full p-5 flex flex-col">
+              <div className="flex items-center gap-2.5">
+                {f.logo_url ? (
+                  <img src={f.logo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-gold/40" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-sm">SG</div>
+                )}
+                <div className="font-display text-lg leading-tight truncate" style={previewBrandStyle}>
+                  {f.restaurant_name || 'Sharq Gavhari'}
+                </div>
               </div>
-            </div>
-            <div className="mt-auto">
-              <div className="text-[10px] uppercase tracking-[0.32em] text-white/55">Premium Cuisine</div>
-              <div className="font-display text-2xl text-white mt-1 leading-tight">
-                {f.restaurant_name || 'Sharq Gavhari'}
-              </div>
-              <div className="mt-3 inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold" style={previewChipStyle}>
-                {t('common.showWaiter')}
+              <div className="mt-auto">
+                <div className="text-[10px] uppercase tracking-[0.32em] text-white/55">Premium Cuisine</div>
+                <div className="font-display text-2xl text-white mt-1 leading-tight">
+                  {f.restaurant_name || 'Sharq Gavhari'}
+                </div>
+                <div className="mt-3 inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold" style={previewChipStyle}>
+                  {t('common.showWaiter')}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className="text-[11px] text-white/40 leading-relaxed">
-          Bu yerda logo, fon, restoran nomi va asosiy rang real vaqtda koʻrinadi.
-        </div>
-      </aside>
+          <div className="text-[11px] text-white/40 leading-relaxed">
+            {PREVIEW_HINT}
+          </div>
+        </aside>
     </form>
   );
 }

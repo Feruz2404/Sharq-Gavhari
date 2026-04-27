@@ -8,17 +8,40 @@ function friendlyError(err) {
   const status = err && err.response && err.response.status;
   const apiMsg = err && err.response && err.response.data && err.response.data.error;
   if (apiMsg && /bucket/i.test(apiMsg)) return apiMsg;
-  if (status === 401 || status === 403) return 'Not authorized — please log in again.';
+  if (status === 401 || status === 403) return 'Not authorized \u2014 please log in again.';
   if (status === 413) return 'Image too large (max 5MB).';
   return apiMsg || (err && err.message) || 'Upload failed';
 }
 
+/**
+ * ImageUpload
+ *
+ * Premium dark/gold image picker with drag-and-drop, click-to-browse, live
+ * thumbnail preview, loading state, and a remove action. Designed to make
+ * the primary action visually obvious without breaking existing call sites.
+ *
+ * Props (all optional except value/onChange):
+ *  - value, onChange   : current image URL and setter (string)
+ *  - bucket            : storage bucket key (default: 'logos')
+ *  - label             : section label rendered above the dropzone
+ *  - aspect            : CSS aspect-ratio for the thumbnail (default '1 / 1')
+ *  - uploadLabel       : button text when no image is set (default 'Upload')
+ *  - changeLabel       : button text when an image is already set (default 'Change')
+ *  - removeLabel       : remove button text (default 'Remove')
+ *  - placeholder       : helper line shown inside the dropzone when empty
+ *  - helperText        : small caption shown under the dropzone
+ */
 export default function ImageUpload({
   value,
   onChange,
   bucket = 'logos',
   label = 'Image',
   aspect = '1 / 1',
+  uploadLabel = 'Upload',
+  changeLabel = 'Change',
+  removeLabel = 'Remove',
+  placeholder,
+  helperText,
 }) {
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -26,7 +49,7 @@ export default function ImageUpload({
   const inputRef = useRef(null);
   const toast = useToast();
 
-  const thumbStyle = { width: 80, height: 80, aspectRatio: aspect };
+  const thumbStyle = { width: 96, height: 96, aspectRatio: aspect };
 
   const upload = async (file) => {
     if (!file) return;
@@ -49,10 +72,20 @@ export default function ImageUpload({
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) upload(f);
   };
+  const openPicker = () => inputRef.current && inputRef.current.click();
 
   const dropzoneCls =
     'flex items-center gap-3 rounded-2xl border border-dashed p-3 transition ' +
-    (drag ? 'border-gold/60 bg-gold/5' : 'border-white/10 bg-white/[0.03]');
+    (drag ? 'border-gold/60 bg-gold/5' : 'border-white/15 bg-white/[0.03] hover:border-white/25');
+
+  // Primary CTA styling: filled gold when no image yet (clearer call to action),
+  // ghost/outline gold when an image already exists.
+  const primaryBtnCls = value
+    ? 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gold/40 text-gold hover:bg-gold/10 hover:border-gold/60 transition disabled:opacity-50'
+    : 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-gold text-black hover:brightness-110 transition disabled:opacity-50 shadow-[0_2px_18px_-4px_rgba(212,175,55,0.55)]';
+
+  const fallbackPlaceholder =
+    'Drop an image, or click to browse (jpg, png, webp \u00B7 \u2264 5MB)';
 
   return (
     <div className="grid gap-2">
@@ -63,36 +96,61 @@ export default function ImageUpload({
         onDrop={onDrop}
         className={dropzoneCls}
       >
-        <div className="shrink-0 rounded-xl overflow-hidden bg-white/5 border border-white/10" style={thumbStyle}>
+        <button
+          type="button"
+          onClick={openPicker}
+          disabled={busy}
+          className="shrink-0 rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-gold/40 transition relative group"
+          style={thumbStyle}
+          aria-label={value ? changeLabel : uploadLabel}
+        >
           <ImageWithFallback src={value} className="w-full h-full object-cover" />
-        </div>
-        <div className="flex-1 min-w-0 grid gap-1.5">
+          {!value && (
+            <span className="absolute inset-0 grid place-items-center text-white/40 group-hover:text-gold transition">
+              <Icon name="upload" size={20} />
+            </span>
+          )}
+        </button>
+        <div className="flex-1 min-w-0 grid gap-2">
           <div className="text-xs text-white/55 truncate">
-            {value ? String(value).split('/').pop() : 'Drop an image, or click to browse (jpg, png, webp \u00B7 \u2264 5MB)'}
+            {value ? String(value).split('/').pop() : (placeholder || fallbackPlaceholder)}
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               disabled={busy}
-              className="btn-ghost !py-1.5 !px-3 text-sm"
-              onClick={() => inputRef.current && inputRef.current.click()}
+              className={primaryBtnCls}
+              onClick={openPicker}
             >
-              <Icon name="upload" size={14} /> {busy ? '\u2026' : (value ? 'Change' : 'Upload')}
+              <Icon name="upload" size={14} />
+              {busy ? '\u2026' : (value ? changeLabel : uploadLabel)}
             </button>
             {value && (
               <button
                 type="button"
                 disabled={busy}
-                className="btn-ghost !py-1.5 !px-3 text-sm !text-red-400 hover:!bg-red-500/10 hover:!border-red-500/30"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-white/10 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition disabled:opacity-50"
                 onClick={() => onChange('')}
               >
-                <Icon name="trash" size={14} /> Remove
+                <Icon name="trash" size={14} /> {removeLabel}
               </button>
             )}
           </div>
         </div>
-        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} disabled={busy} />
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          className="hidden"
+          onChange={onPick}
+          disabled={busy}
+        />
       </div>
+      {helperText && (
+        <div className="text-[11px] text-white/45 leading-relaxed">
+          {helperText}
+        </div>
+      )}
       {err && (
         <div className="text-red-400 text-xs flex items-center gap-1.5">
           <Icon name="alert" size={12} /> {err}
