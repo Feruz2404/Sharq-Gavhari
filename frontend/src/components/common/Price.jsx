@@ -1,7 +1,8 @@
 import { formatPrice } from '../../utils/formatPrice.js';
 
 export default function Price({ value, discount, className = '' }) {
-  if (discount != null && Number(discount) > 0 && Number(discount) < Number(value)) {
+  const hasDiscount = discount != null && Number(discount) > 0 && Number(discount) < Number(value);
+  if (hasDiscount) {
     return (
       <div className={`flex items-baseline gap-2 ${className}`}>
         <span className="gold-text font-semibold">{formatPrice(discount)}</span>

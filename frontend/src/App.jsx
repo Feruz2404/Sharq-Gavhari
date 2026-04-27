@@ -4,6 +4,7 @@ import AppRouter from './router/AppRouter.jsx';
 import { syncManifestForRoute } from './utils/manifestManager.js';
 import { registerInternalPWA, unregisterInternalPWA } from './utils/registerInternalPWA.js';
 import { useSettingsStore } from './stores/settingsStore.js';
+import { ToastProvider } from './components/common/Toast.jsx';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -20,5 +21,9 @@ export default function App() {
     }
   }, [pathname]);
 
-  return <AppRouter />;
+  return (
+    <ToastProvider>
+      <AppRouter />
+    </ToastProvider>
+  );
 }

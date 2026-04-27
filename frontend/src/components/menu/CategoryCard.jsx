@@ -4,18 +4,24 @@ import ImageWithFallback from '../common/ImageWithFallback.jsx';
 import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 
-const hoverProps = { scale: 1.02 };
-const tapProps   = { scale: 0.98 };
+const hover = { y: -3, scale: 1.01 };
+const tap   = { scale: 0.98 };
 
 export default function CategoryCard({ category, basePath = '/category' }) {
   const lang = useLanguageStore((s) => s.language);
   const slug = category.slug || category.id;
+  const name = getLocalizedField(category, 'name', lang);
+
   return (
-    <motion.div whileHover={hoverProps} whileTap={tapProps}>
-      <Link to={`${basePath}/${slug}`} className="glass block overflow-hidden">
-        <ImageWithFallback src={category.image_url} alt={getLocalizedField(category, 'name', lang)} className="w-full aspect-[4/3] object-cover" />
-        <div className="p-3">
-          <div className="font-display gold-text text-lg truncate">{getLocalizedField(category, 'name', lang)}</div>
+    <motion.div whileHover={hover} whileTap={tap} transition= type: 'spring', stiffness: 320, damping: 22 >
+      <Link to={`${basePath}/${slug}`} className="group glass block overflow-hidden relative">
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <ImageWithFallback src={category.image_url} alt={name} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-3">
+            <div className="font-display text-white text-lg leading-tight truncate">{name}</div>
+            <div className="mt-0.5 h-px w-8 bg-gold/70 group-hover:w-12 transition-all duration-300" />
+          </div>
         </div>
       </Link>
     </motion.div>

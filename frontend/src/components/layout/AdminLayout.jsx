@@ -4,10 +4,12 @@ import InstallAppButton from '../pwa/InstallAppButton.jsx';
 
 export default function AdminLayout() {
   return (
-    <div className="min-h-screen bg-bg-deep flex">
+    <div className="min-h-screen app-bg flex">
       <AdminSidebar />
-      <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
-        <div className="flex justify-end mb-3"><InstallAppButton /></div>
+      <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
+        <div className="hidden md:flex items-center justify-end gap-2 mb-4">
+          <InstallAppButton size="sm" />
+        </div>
         <Outlet />
       </main>
     </div>
