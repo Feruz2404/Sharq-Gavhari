@@ -1,9 +1,28 @@
 export default {
   nav: { menu: 'Menu', cart: 'Cart', back: 'Back' },
+  brand: {
+    tagline: 'A premium dining experience',
+  },
+  hero: {
+    eyebrow: 'Fine cuisine',
+    description:
+      'A curated selection of dishes \u2014 crafted with care, served with elegance.',
+    tagFresh: 'Fresh ingredients',
+    tagCrafted: 'Crafted recipes',
+    tagPicked: 'Hand-picked',
+  },
+  menu: {
+    categoriesTitle: 'Categories',
+    allCategories: 'All',
+    filteredTitle: 'Results',
+  },
   common: {
     loading: 'Loading...',
+    loadingTagline: 'Preparing your experience',
     empty: 'Nothing found',
+    tryDifferent: 'Try a different keyword or category.',
     search: 'Search',
+    searchPlaceholder: 'Search dishes...',
     add: 'Add',
     addToCart: 'Add to cart',
     save: 'Save',
@@ -22,6 +41,7 @@ export default {
     unavailable: 'Unavailable',
     install: 'Install',
     installApp: 'Add as app',
+    adminAccess: 'Admin panel',
     finalMessage: 'Please show this list to the waiter.',
   },
   pwa: {

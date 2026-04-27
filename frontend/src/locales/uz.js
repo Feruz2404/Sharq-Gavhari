@@ -1,17 +1,36 @@
 export default {
   nav: { menu: 'Menyu', cart: 'Savat', back: 'Orqaga' },
+  brand: {
+    tagline: 'Yuksak gastronomiya tajribasi',
+  },
+  hero: {
+    eyebrow: 'Premium taomnoma',
+    description:
+      'Mahoratli oshpazlardan, did bilan tanlangan taomlar \u2014 ehtiyotkorlik bilan tayyorlangan, nafosat bilan taqdim etilgan.',
+    tagFresh: 'Tabiiy mahsulotlar',
+    tagCrafted: 'Mualliflik retseptlar',
+    tagPicked: 'Tanlangan ingredientlar',
+  },
+  menu: {
+    categoriesTitle: 'Kategoriyalar',
+    allCategories: 'Barchasi',
+    filteredTitle: 'Natijalar',
+  },
   common: {
     loading: 'Yuklanmoqda...',
+    loadingTagline: 'Sizning tajribangiz tayyorlanmoqda',
     empty: 'Hech narsa topilmadi',
+    tryDifferent: 'Boshqa kalit so\u02BBzni yoki kategoriyani sinab ko\u02BBring.',
     search: 'Qidirish',
-    add: "Qo'shish",
-    addToCart: "Savatga qo'shish",
+    searchPlaceholder: 'Taomlarni qidirish...',
+    add: 'Qo\u02BBshish',
+    addToCart: 'Savatga qo\u02BBshish',
     save: 'Saqlash',
     cancel: 'Bekor qilish',
-    delete: "O'chirish",
+    delete: 'O\u02BBchirish',
     edit: 'Tahrirlash',
     yes: 'Ha',
-    no: "Yo'q",
+    no: 'Yo\u02BBq',
     clear: 'Tozalash',
     showWaiter: 'Ofitsantga ko\u02BBrsatish',
     nextCustomer: 'Keyingi mijoz uchun tozalash',
@@ -22,14 +41,16 @@ export default {
     unavailable: 'Mavjud emas',
     install: 'O\u02BBrnatish',
     installApp: 'App sifatida qo\u02BBshish',
-    finalMessage: "Iltimos, ushbu ro\u2018yxatni ofitsantga ko\u2018rsating.",
+    adminAccess: 'Admin paneli',
+    finalMessage: 'Iltimos, ushbu ro\u02BByxatni ofitsantga ko\u02BBrsating.',
   },
   pwa: {
     iosTitle: 'Bosh ekranga qo\u02BBshish',
     iosIntro:
       'iPhone yoki iPad-da bu ilovani bosh ekraningizga qo\u02BBshish uchun quyidagi 3 qadamni bajaring.',
     iosStep1: 'Safari pastidagi \u201cUlashish\u201d (Share) tugmasini bosing.',
-    iosStep2: 'Ochilgan ro\u02BByxatdan \u201cBosh ekranga qo\u02BBshish\u201d (Add to Home Screen) ni tanlang.',
+    iosStep2:
+      'Ochilgan ro\u02BByxatdan \u201cBosh ekranga qo\u02BBshish\u201d (Add to Home Screen) ni tanlang.',
     iosStep3: 'Yuqori o\u02BBng burchakdagi \u201cQo\u02BBshish\u201d (Add) tugmasini bosing.',
     iosTip:
       'Maslahat: agar \u201cUlashish\u201d tugmasini ko\u02BBrmasangiz, sahifani Safari brauzerida oching (Chrome yoki boshqa brauzerlarda iOS bu funksiyani qo\u02BBllab-quvvatlamaydi).',
@@ -64,6 +85,6 @@ export default {
     tableNumber: 'Stol raqami',
     tableName: 'Stol nomi',
     qrUrl: 'QR URL',
-    downloadQR: "QR yuklab olish",
+    downloadQR: 'QR yuklab olish',
   },
 };

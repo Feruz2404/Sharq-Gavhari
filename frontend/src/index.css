@@ -5,6 +5,13 @@
 :root {
   --accent: #D4AF37;
   --accent-soft: #E6C76A;
+  /*
+    Static cinematic page-background gradient.
+    NOTE: this CSS variable is intentionally NOT overwritten by the uploaded
+    settings.background_image_url anymore (see settingsStore.js). The uploaded
+    background image is reserved for the hero section so the two main visuals
+    on the menu page are never the same artwork.
+  */
   --bg-image: linear-gradient(135deg, #0B0907 0%, #050505 60%, #0B0907 100%);
 }
 
@@ -20,8 +27,8 @@ body {
   overflow-x: hidden;
 }
 
-/* Premium ambient background — subtle, NOT overpowering. */
-/* The uploaded background image sits behind a soft graded overlay so it reads as atmosphere, not wallpaper. */
+/* Premium ambient page background — subtle, cinematic, NOT photo-based.    */
+/* Reserved for app-wide chrome; the hero owns its own (uploaded) artwork.    */
 .app-bg { position: relative; isolation: isolate; }
 .app-bg::before {
   content: '';
@@ -92,9 +99,12 @@ body {
   }
 
   .surface-header {
-    @apply sticky top-0 z-30 backdrop-blur-xl bg-black/55 border-b border-white/5;
+    @apply sticky top-0 z-30 backdrop-blur-xl bg-black/60 border-b border-white/5;
   }
 }
+
+/* Respect iOS / iPadOS notch & status-bar safe area on the sticky header.   */
+.header-safe { padding-top: env(safe-area-inset-top, 0px); }
 
 /* Hide scrollbar utility. */
 .no-scrollbar::-webkit-scrollbar { display: none; }
