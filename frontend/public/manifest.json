@@ -1,12 +1,12 @@
 {
-  "name": "Sharq Gavhari — Premium Menu",
+  "name": "Sharq Gavhari Digital Menu",
   "short_name": "Sharq Gavhari",
   "description": "Premium digital menu for Sharq Gavhari restaurant guests",
   "start_url": "/menu",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "theme_color": "#0B0B0B",
+  "theme_color": "#050505",
   "background_color": "#050505",
   "categories": ["food", "lifestyle"],
   "icons": [

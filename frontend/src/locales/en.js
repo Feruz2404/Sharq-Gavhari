@@ -21,8 +21,20 @@ export default {
     table: 'Table',
     unavailable: 'Unavailable',
     install: 'Install',
-    installApp: 'Install app',
+    installApp: 'Add as app',
     finalMessage: 'Please show this list to the waiter.',
+  },
+  pwa: {
+    iosTitle: 'Add to Home Screen',
+    iosIntro:
+      'To install this app on your iPhone or iPad, follow these 3 quick steps.',
+    iosStep1: 'Tap the \u201cShare\u201d button in the Safari toolbar.',
+    iosStep2: 'Choose \u201cAdd to Home Screen\u201d from the menu.',
+    iosStep3: 'Tap \u201cAdd\u201d in the top-right corner.',
+    iosTip:
+      'Tip: if you don\u2019t see the Share button, open this page in Safari (Chrome and other browsers on iOS don\u2019t support installing PWAs).',
+    gotIt: 'Got it',
+    close: 'Close',
   },
   admin: {
     login: 'Login',

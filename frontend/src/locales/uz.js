@@ -13,7 +13,7 @@ export default {
     yes: 'Ha',
     no: "Yo'q",
     clear: 'Tozalash',
-    showWaiter: 'Ofitsantga koʻrsatish',
+    showWaiter: 'Ofitsantga ko\u02BBrsatish',
     nextCustomer: 'Keyingi mijoz uchun tozalash',
     quantity: 'Miqdor',
     note: 'Izoh',
@@ -21,8 +21,20 @@ export default {
     table: 'Stol',
     unavailable: 'Mavjud emas',
     install: 'O\u02BBrnatish',
-    installApp: 'Ilovani o\u02BBrnatish',
-    finalMessage: "Iltimos, ushbu ro‘yxatni ofitsantga ko‘rsating.",
+    installApp: 'App sifatida qo\u02BBshish',
+    finalMessage: "Iltimos, ushbu ro\u2018yxatni ofitsantga ko\u2018rsating.",
+  },
+  pwa: {
+    iosTitle: 'Bosh ekranga qo\u02BBshish',
+    iosIntro:
+      'iPhone yoki iPad-da bu ilovani bosh ekraningizga qo\u02BBshish uchun quyidagi 3 qadamni bajaring.',
+    iosStep1: 'Safari pastidagi \u201cUlashish\u201d (Share) tugmasini bosing.',
+    iosStep2: 'Ochilgan ro\u02BByxatdan \u201cBosh ekranga qo\u02BBshish\u201d (Add to Home Screen) ni tanlang.',
+    iosStep3: 'Yuqori o\u02BBng burchakdagi \u201cQo\u02BBshish\u201d (Add) tugmasini bosing.',
+    iosTip:
+      'Maslahat: agar \u201cUlashish\u201d tugmasini ko\u02BBrmasangiz, sahifani Safari brauzerida oching (Chrome yoki boshqa brauzerlarda iOS bu funksiyani qo\u02BBllab-quvvatlamaydi).',
+    gotIt: 'Tushunarli',
+    close: 'Yopish',
   },
   admin: {
     login: 'Kirish',
