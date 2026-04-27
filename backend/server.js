@@ -12,20 +12,26 @@ const uploadRoutes = require('./src/routes/upload.routes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CLIENT_URL may be a single origin or a comma-separated list of allowed origins.
-// Examples:
-//   CLIENT_URL=http://localhost:5173
-//   CLIENT_URL=https://sharq-gavhari.vercel.app
-//   CLIENT_URL=https://sharq-gavhari.vercel.app,https://www.sharqgavhari.uz
-const RAW_CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-const ALLOWED_ORIGINS = RAW_CLIENT_URL.split(',').map((s) => s.trim()).filter(Boolean);
+// Allowed frontend origins for CORS.
+//
+// Resolution order (first non-empty wins):
+//   1. CLIENT_URLS  — comma-separated list of origins (preferred for prod).
+//        e.g. CLIENT_URLS=http://localhost:5173,https://sharq-gavhari.vercel.app
+//   2. CLIENT_URL   — single origin (legacy / simple setups).
+//        e.g. CLIENT_URL=https://sharq-gavhari.vercel.app
+//   3. Built-in default — http://localhost:5173 so local dev works zero-config.
+//
+// We never use the wildcard "*" because the API uses credentials.
+const RAW = (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173').trim();
+const ALLOWED_ORIGINS = RAW.split(',').map((s) => s.trim()).filter(Boolean);
 
-// Allow all *.vercel.app preview deployments by default in addition to the
-// explicit CLIENT_URL list. Disable with ALLOW_VERCEL_PREVIEWS=false.
+// Allow Vercel preview deploys (https://<branch>-<hash>.vercel.app) by default.
+// Set ALLOW_VERCEL_PREVIEWS=false to disable.
 const ALLOW_VERCEL_PREVIEWS = process.env.ALLOW_VERCEL_PREVIEWS !== 'false';
 
 function isAllowedOrigin(origin) {
-  if (!origin) return true; // same-origin / curl / mobile webview
+  // Same-origin / curl / native webview requests do not send an Origin header.
+  if (!origin) return true;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   if (ALLOW_VERCEL_PREVIEWS && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
   return false;

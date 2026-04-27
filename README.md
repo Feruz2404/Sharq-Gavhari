@@ -42,7 +42,7 @@ sharq-gavhari/
 
 ```bash
 cd backend
-cp .env.example .env   # fill in Supabase + JWT + CLIENT_URL
+cp .env.example .env   # fill in Supabase + JWT + CLIENT_URLS
 npm install
 npm run dev            # http://localhost:5000
 ```
@@ -73,25 +73,27 @@ Import the GitHub repo into Vercel and set the project options as follows:
 | Install Command    | `npm install`     |
 | Node.js Version    | 20.x              |
 
-Environment variables (Vercel → Project → Settings → Environment Variables):
+Environment variables (Vercel → Project → Settings → Environment Variables — apply to **Production**, **Preview**, **Development**):
 
 ```
-VITE_API_URL=https://your-backend-domain.com/api
-VITE_PUBLIC_BASE_URL=https://your-vercel-domain.vercel.app
+VITE_API_URL=https://YOUR_BACKEND_DOMAIN/api
+VITE_PUBLIC_BASE_URL=https://sharq-gavhari.vercel.app
 ```
+
+The `/api` suffix on `VITE_API_URL` is required. **After adding/changing env vars on Vercel, you must redeploy** — env changes do not auto-redeploy.
 
 SPA routing is handled by `frontend/vercel.json` (rewrites `/(.*)` → `/index.html`), so deep links like `/admin/products` and `/category/salatlar` work after a hard refresh.
 
 ### Backend → Render / Railway / Fly
 
-The Express API is **not** deployed to Vercel (it is a long-running server with file uploads and is not a serverless function). Deploy `backend/` to Render, Railway, or Fly:
+The Express API is **not** deployed to Vercel (it is a long-running server with file uploads, not a serverless function). Deploy `backend/` to Render, Railway, or Fly:
 
-| Setting        | Value                |
-| -------------- | -------------------- |
-| Root Directory | `backend`            |
-| Build Command  | `npm install`        |
-| Start Command  | `npm start` (`node server.js`) |
-| Health Check   | `/api/health`        |
+| Setting        | Value                            |
+| -------------- | -------------------------------- |
+| Root Directory | `backend`                        |
+| Build Command  | `npm install`                    |
+| Start Command  | `npm start` (`node server.js`)   |
+| Health Check   | `/api/health`                    |
 
 Environment variables:
 
@@ -101,11 +103,17 @@ SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 JWT_SECRET=...
 JWT_EXPIRES_IN=7d
-CLIENT_URL=https://your-vercel-domain.vercel.app
+CLIENT_URLS=http://localhost:5173,https://sharq-gavhari.vercel.app
 MAX_UPLOAD_MB=5
 ```
 
-`CLIENT_URL` can be a comma-separated list (e.g. `https://sharqgavhari.uz,https://www.sharqgavhari.uz,https://sharq-gavhari.vercel.app`). Vercel preview deploys (`*.vercel.app`) are allowed by default; set `ALLOW_VERCEL_PREVIEWS=false` to disable.
+`CLIENT_URLS` is a comma-separated list of allowed frontend origins. If you only need one, you can use the legacy single-origin variable instead:
+
+```
+CLIENT_URL=https://sharq-gavhari.vercel.app
+```
+
+If both are set, `CLIENT_URLS` wins. Vercel preview deploys (`*.vercel.app`) are allowed by default; set `ALLOW_VERCEL_PREVIEWS=false` to disable. The wildcard `*` is intentionally **not** supported because the API sends credentials.
 
 After the backend has a public URL, paste that URL (with `/api` suffix) into the Vercel `VITE_API_URL` env var and redeploy the frontend.
 
@@ -144,7 +152,7 @@ UI labels live in `frontend/src/locales/{uz,ru,en}.js`. Every product/category r
 - Supabase **service role key** is only ever used by the backend.
 - All admin write endpoints (`POST` / `PUT` / `PATCH` / `DELETE` and `/api/upload`) are protected by JWT (`requireAdmin` middleware).
 - Admin passwords stored as bcrypt hashes (cost 10).
-- CORS pinned to `CLIENT_URL` (comma-separated allow list, plus optional `*.vercel.app` previews).
+- CORS pinned to a comma-separated allow list (`CLIENT_URLS`), plus optional `*.vercel.app` previews. Wildcard `*` is never used.
 - The frontend never sees the service role key.
 - `.env` files are gitignored; `frontend/.env.example` and `backend/.env.example` are the canonical templates.
 
