@@ -81,6 +81,7 @@ create table if not exists settings (
   restaurant_name text not null default 'Sharq Gavhari',
   logo_url text,
   background_url text,
+  background_image_url text,
   phone text,
   instagram text,
   telegram text,

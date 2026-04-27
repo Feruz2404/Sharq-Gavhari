@@ -14,7 +14,8 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
 
-const grid = { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.3 } };
+const grid    = { initial: { opacity: 0, y: 8 },  animate: { opacity: 1, y: 0 }, transition: { duration: 0.30 } };
+const heroFade = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45 } };
 
 export default function MenuPage() {
   const lang = useLanguageStore((s) => s.language);
@@ -34,7 +35,7 @@ export default function MenuPage() {
         setCats(c.filter((x) => x.is_active !== false));
         setProds(p.filter((x) => x.is_active !== false));
       })
-      .finally(() => !cancelled && setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -52,9 +53,21 @@ export default function MenuPage() {
     return list;
   }, [prods, q, activeCat, lang]);
 
+  const featured = useMemo(
+    () => prods.filter((p) => p.is_available !== false).slice(0, 6),
+    [prods]
+  );
+
+  const heroBg = (settings && (settings.background_image_url || settings.background_url)) || '';
+  const heroBgStyle = useMemo(
+    () => (heroBg ? { backgroundImage: 'url(' + heroBg + ')' } : undefined),
+    [heroBg]
+  );
+
   if (loading) return <LoadingLogo fullscreen />;
 
   const showHero = !q && activeCat === 'all';
+  const restaurantName = (settings && settings.restaurant_name) || 'Sharq Gavhari';
 
   return (
     <div className="min-h-screen pb-32">
@@ -62,23 +75,32 @@ export default function MenuPage() {
 
       <main className="max-w-6xl mx-auto px-4 pt-5 pb-6 grid gap-7">
         {showHero && (
-          <section className="glass-strong p-6 md:p-8 relative overflow-hidden">
-            <div className="relative z-10 max-w-xl">
-              <div className="text-[11px] uppercase tracking-[0.32em] text-gold/80">{t('admin.restaurantName')}</div>
-              <h1 className="font-display text-3xl md:text-4xl mt-2 leading-tight">
-                {settings?.restaurant_name || 'Sharq Gavhari'}
+          <motion.section
+            {...heroFade}
+            className="relative overflow-hidden rounded-3xl border border-white/10 shadow-soft"
+          >
+            <div className="absolute inset-0 bg-cover bg-center scale-105" style={heroBgStyle} aria-hidden="true" />
+            {!heroBg && (
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-zinc-950 to-black" aria-hidden="true" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" aria-hidden="true" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/0 to-black/0" aria-hidden="true" />
+            <div className="relative z-10 p-6 md:p-12 min-h-[280px] md:min-h-[380px] flex flex-col justify-end">
+              <div className="text-[11px] uppercase tracking-[0.32em] text-gold/85">Premium Cuisine</div>
+              <h1 className="font-display text-3xl md:text-5xl mt-2 leading-tight gold-text drop-shadow-[0_2px_24px_rgba(0,0,0,0.8)]">
+                {restaurantName}
               </h1>
-              <p className="text-white/65 mt-3 text-sm md:text-base">
-                Discover a curated selection of premium dishes — crafted with care, served with elegance.
+              <p className="text-white/85 mt-3 max-w-xl text-sm md:text-base">
+                A curated selection of premium dishes \u2014 crafted with care, served with elegance.
               </p>
-              <div className="mt-5 flex items-center gap-3 text-xs text-white/55">
-                <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-gold" /> Fresh ingredients</span>
-                <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-gold" /> Crafted recipes</span>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <span className="pill !text-gold !border-gold/40">Fresh ingredients</span>
+                <span className="pill !text-gold !border-gold/40">Crafted recipes</span>
+                <span className="pill !text-gold !border-gold/40">Hand-picked</span>
               </div>
             </div>
-            <div className="pointer-events-none absolute -right-10 -top-10 w-64 h-64 rounded-full bg-gold/10 blur-3xl" />
-            <div className="pointer-events-none absolute -right-20 -bottom-24 w-72 h-72 rounded-full bg-gold/[0.06] blur-3xl" />
-          </section>
+            <div className="pointer-events-none absolute -right-10 -top-10 w-72 h-72 rounded-full bg-gold/10 blur-3xl" />
+          </motion.section>
         )}
 
         <div><SearchBar value={q} onChange={setQ} /></div>
@@ -91,6 +113,22 @@ export default function MenuPage() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {cats.map((c) => <CategoryCard key={c.id} category={c} />)}
+            </div>
+          </section>
+        )}
+
+        {showHero && featured.length > 0 && (
+          <section>
+            <div className="flex items-end justify-between mb-3">
+              <h2 className="font-display text-xl gold-text">Featured</h2>
+              <div className="divider-gold flex-1 ml-4 mb-2" />
+            </div>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
+              {featured.map((p) => (
+                <div key={p.id} className="w-56 shrink-0">
+                  <ProductCard product={p} />
+                </div>
+              ))}
             </div>
           </section>
         )}

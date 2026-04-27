@@ -3,8 +3,13 @@ import { settingsService } from '../services/settingsService.js';
 
 function applyCssVars(s) {
   if (!s) return;
-  if (s.accent_color) document.documentElement.style.setProperty('--accent', s.accent_color);
-  if (s.background_url) document.documentElement.style.setProperty('--bg-image', `url('${s.background_url}')`);
+  if (s.accent_color) {
+    document.documentElement.style.setProperty('--accent', s.accent_color);
+  }
+  const bg = s.background_image_url || s.background_url;
+  if (bg) {
+    document.documentElement.style.setProperty('--bg-image', "url('" + bg + "')");
+  }
 }
 
 export const useSettingsStore = create((set, get) => ({
