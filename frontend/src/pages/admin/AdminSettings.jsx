@@ -5,7 +5,7 @@ import { useToast } from '../../components/common/Toast.jsx';
 import { useT } from '../../locales/useT.js';
 
 const LANGS = [
-  { value: 'uz', label: "O\u02BBzbekcha" },
+  { value: 'uz', label: 'Oʻzbekcha' },
   { value: 'ru', label: 'Pусский' },
   { value: 'en', label: 'English' },
 ];
@@ -57,6 +57,9 @@ export default function AdminSettings() {
         accent_color: f.accent_color,
         default_language: f.default_language,
       });
+      // Re-fetch to make absolutely sure the store reflects the persisted row,
+      // so /menu and the header see the latest logo/background after navigating.
+      await fetchSettings();
       toast.success('Sozlamalar saqlandi');
     } catch (x) {
       const msg = (x && x.response && x.response.data && x.response.data.error) || (x && x.message) || 'Saqlashda xatolik';
@@ -86,7 +89,7 @@ export default function AdminSettings() {
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl gold-text">{t('admin.settings')}</h1>
           <button disabled={busy} type="submit" className="btn-gold">
-            {busy ? '\u2026' : t('common.save')}
+            {busy ? '…' : t('common.save')}
           </button>
         </div>
 
@@ -191,7 +194,7 @@ export default function AdminSettings() {
           </div>
         </div>
         <div className="text-[11px] text-white/40 leading-relaxed">
-          Bu yerda logo, fon, restoran nomi va asosiy rang real vaqtda ko\u02BBrinadi.
+          Bu yerda logo, fon, restoran nomi va asosiy rang real vaqtda koʻrinadi.
         </div>
       </aside>
     </form>

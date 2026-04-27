@@ -23,7 +23,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
 
   const categoryOptions = categories.map((c) => ({
     value: c.id,
-    label: c.name_uz || c.name_en || c.slug || '\u2014',
+    label: c.name_uz || c.name_en || c.slug || '—',
     sublabel: c.slug || '',
     image_url: c.image_url,
   }));
@@ -61,7 +61,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
                 value={f.category_id || ''}
                 onChange={(v) => set('category_id')(v)}
                 options={categoryOptions}
-                placeholder="\u2014"
+                placeholder="—"
                 invalid={categoryInvalid}
               />
             )}
@@ -133,7 +133,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         <div className="flex gap-2 ml-auto">
           <button type="button" onClick={onCancel} className="btn-ghost">{t('common.cancel')}</button>
           <button type="submit" disabled={submitting || noCategories} className="btn-gold">
-            {submitting ? '\u2026' : t('common.save')}
+            {submitting ? '…' : t('common.save')}
           </button>
         </div>
       </section>

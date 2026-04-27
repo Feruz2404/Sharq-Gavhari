@@ -14,7 +14,7 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
 
-const grid    = { initial: { opacity: 0, y: 8 },  animate: { opacity: 1, y: 0 }, transition: { duration: 0.30 } };
+const grid     = { initial: { opacity: 0, y: 8 },  animate: { opacity: 1, y: 0 }, transition: { duration: 0.30 } };
 const heroFade = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45 } };
 
 export default function MenuPage() {
@@ -79,19 +79,21 @@ export default function MenuPage() {
             {...heroFade}
             className="relative overflow-hidden rounded-3xl border border-white/10 shadow-soft"
           >
-            <div className="absolute inset-0 bg-cover bg-center scale-105" style={heroBgStyle} aria-hidden="true" />
-            {!heroBg && (
+            {/* Background layer: uploaded image OR elegant dark gradient fallback. */}
+            {heroBg ? (
+              <div className="absolute inset-0 bg-cover bg-center scale-105" style={heroBgStyle} aria-hidden="true" />
+            ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-zinc-950 to-black" aria-hidden="true" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" aria-hidden="true" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/0 to-black/0" aria-hidden="true" />
+            {/* Single readable graded overlay: dark from bottom-left to keep text legible without flattening the photo. */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/65 to-black/15" aria-hidden="true" />
             <div className="relative z-10 p-6 md:p-12 min-h-[280px] md:min-h-[380px] flex flex-col justify-end">
               <div className="text-[11px] uppercase tracking-[0.32em] text-gold/85">Premium Cuisine</div>
               <h1 className="font-display text-3xl md:text-5xl mt-2 leading-tight gold-text drop-shadow-[0_2px_24px_rgba(0,0,0,0.8)]">
                 {restaurantName}
               </h1>
               <p className="text-white/85 mt-3 max-w-xl text-sm md:text-base">
-                A curated selection of premium dishes \u2014 crafted with care, served with elegance.
+                A curated selection of premium dishes — crafted with care, served with elegance.
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 <span className="pill !text-gold !border-gold/40">Fresh ingredients</span>

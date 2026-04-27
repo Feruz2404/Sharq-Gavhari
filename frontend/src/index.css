@@ -20,14 +20,17 @@ body {
   overflow-x: hidden;
 }
 
-/* Premium ambient background — fixed gradient + soft gold halos. */
+/* Premium ambient background — subtle, NOT overpowering. */
+/* The uploaded background image sits behind a soft graded overlay so it reads as atmosphere, not wallpaper. */
 .app-bg { position: relative; isolation: isolate; }
 .app-bg::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -2;
-  background-image: linear-gradient(rgba(5,5,5,0.78), rgba(5,5,5,0.92)), var(--bg-image);
+  background-image:
+    linear-gradient(180deg, rgba(5,5,5,0.62) 0%, rgba(5,5,5,0.78) 50%, rgba(5,5,5,0.92) 100%),
+    var(--bg-image);
   background-size: cover;
   background-position: center;
 }
@@ -42,11 +45,13 @@ body {
     radial-gradient(720px 400px at 108% 110%, rgba(212,175,55,0.08), transparent 60%);
 }
 
-/* Backwards-compat alias. */
+/* Backwards-compat alias for older route wrappers. */
 .bg-restaurant { position: relative; isolation: isolate; }
 .bg-restaurant::before {
   content: ''; position: fixed; inset: 0; z-index: -2;
-  background-image: linear-gradient(rgba(5,5,5,0.78), rgba(5,5,5,0.92)), var(--bg-image);
+  background-image:
+    linear-gradient(180deg, rgba(5,5,5,0.62) 0%, rgba(5,5,5,0.78) 50%, rgba(5,5,5,0.92) 100%),
+    var(--bg-image);
   background-size: cover; background-position: center;
 }
 .bg-restaurant::after {

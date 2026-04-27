@@ -1,31 +1,58 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Premium dark dropdown that replaces the native <select> in admin forms.
-// Keeps the dark/gold theme on every OS (no white system menu).
+// The listbox is rendered into a React portal at document.body and positioned with
+// fixed coordinates derived from the trigger's bounding rect. This guarantees the menu
+// is NEVER clipped by parent overflow/stacking-context (the Names card etc).
+
+const PORTAL_Z = 9999;
+
 export default function Select({
   value,
   onChange,
   options = [],
-  placeholder = 'Select\u2026',
+  placeholder = 'Select…',
   emptyHint = '',
   disabled = false,
   invalid = false,
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+
+  const computePos = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ top: r.bottom + 6, left: r.left, width: r.width });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    computePos();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onClick = (e) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target)) setOpen(false);
+      const tgt = e.target;
+      if (triggerRef.current && triggerRef.current.contains(tgt)) return;
+      if (menuRef.current && menuRef.current.contains(tgt)) return;
+      setOpen(false);
     };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const onMove = () => computePos();
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
     return () => {
       document.removeEventListener('mousedown', onClick);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
     };
   }, [open]);
 
@@ -35,9 +62,14 @@ export default function Select({
     (invalid ? '!border-red-500/40' : '');
   const chevronCls = 'shrink-0 transition ' + (open ? 'rotate-180' : '');
 
+  const menuStyle = pos
+    ? { position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: PORTAL_Z, maxHeight: 240 }
+    : { display: 'none' };
+
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
@@ -58,10 +90,12 @@ export default function Select({
         </svg>
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div
+          ref={menuRef}
           role="listbox"
-          className="absolute left-0 right-0 z-40 mt-1.5 max-h-64 overflow-auto rounded-xl border border-white/10 bg-[#0B0B0B]/95 backdrop-blur-xl shadow-soft"
+          style={menuStyle}
+          className="overflow-auto rounded-xl border border-white/10 bg-[#0B0B0B]/95 backdrop-blur-xl shadow-soft"
         >
           {options.length === 0 ? (
             <div className="px-3 py-3 text-sm text-white/55">
@@ -105,7 +139,8 @@ export default function Select({
               );
             })
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
