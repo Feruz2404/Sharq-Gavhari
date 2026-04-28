@@ -1,5 +1,11 @@
 export default {
-  nav: { menu: 'Menyu', cart: 'Savat', back: 'Orqaga' },
+  nav: {
+    menu: 'Menyu',
+    cart: 'Savat',
+    back: 'Orqaga',
+    openMenu: 'Menyuni ochish',
+    closeMenu: 'Menyuni yopish',
+  },
   brand: {
     tagline: 'Yuksak gastronomiya tajribasi',
   },
@@ -15,6 +21,10 @@ export default {
     categoriesTitle: 'Kategoriyalar',
     allCategories: 'Barchasi',
     filteredTitle: 'Natijalar',
+    selectCategory: 'Kategoriya tanlang',
+    sale: 'Chegirma',
+    viewDetails: 'Batafsil',
+    noProductsInCategory: 'Bu kategoriyada hozircha mahsulot yo\u02BBq.',
   },
   common: {
     loading: 'Yuklanmoqda...',

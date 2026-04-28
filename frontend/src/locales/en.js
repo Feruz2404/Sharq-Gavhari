@@ -1,5 +1,11 @@
 export default {
-  nav: { menu: 'Menu', cart: 'Cart', back: 'Back' },
+  nav: {
+    menu: 'Menu',
+    cart: 'Cart',
+    back: 'Back',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+  },
   brand: {
     tagline: 'A premium dining experience',
   },
@@ -15,6 +21,10 @@ export default {
     categoriesTitle: 'Categories',
     allCategories: 'All',
     filteredTitle: 'Results',
+    selectCategory: 'Choose a category',
+    sale: 'Sale',
+    viewDetails: 'View details',
+    noProductsInCategory: 'No items in this category yet.',
   },
   common: {
     loading: 'Loading...',

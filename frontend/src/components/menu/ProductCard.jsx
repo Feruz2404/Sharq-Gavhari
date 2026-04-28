@@ -35,7 +35,7 @@ export default function ProductCard({ product, basePath = '/product' }) {
       transition={cardTransition}
       className="group glass overflow-hidden flex flex-col"
     >
-      <Link to={`${basePath}/${product.id}`} className="block relative">
+      <Link to={basePath + '/' + product.id} className="block relative">
         <div className="relative aspect-[4/3] overflow-hidden">
           <ImageWithFallback
             src={product.image_url}
@@ -51,7 +51,7 @@ export default function ProductCard({ product, basePath = '/product' }) {
           )}
           {onSale && (
             <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wider bg-gold text-black px-2 py-1 rounded-md font-semibold">
-              Sale
+              {t('menu.sale')}
             </span>
           )}
         </div>

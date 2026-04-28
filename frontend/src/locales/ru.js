@@ -1,5 +1,11 @@
 export default {
-  nav: { menu: 'Меню', cart: 'Корзина', back: 'Назад' },
+  nav: {
+    menu: 'Меню',
+    cart: 'Корзина',
+    back: 'Назад',
+    openMenu: 'Открыть меню',
+    closeMenu: 'Закрыть меню',
+  },
   brand: {
     tagline: 'Премиум гастрономический опыт',
   },
@@ -15,6 +21,10 @@ export default {
     categoriesTitle: 'Категории',
     allCategories: 'Все',
     filteredTitle: 'Результаты',
+    selectCategory: 'Выберите категорию',
+    sale: 'Скидка',
+    viewDetails: 'Подробнее',
+    noProductsInCategory: 'В этой категории пока нет блюд.',
   },
   common: {
     loading: 'Загрузка...',

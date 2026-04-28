@@ -4,15 +4,22 @@ import { createPortal } from 'react-dom';
 // Premium dark dropdown that replaces the native <select> in admin forms.
 // The listbox is rendered into a React portal at document.body and positioned with
 // fixed coordinates derived from the trigger's bounding rect. This guarantees the menu
-// is NEVER clipped by parent overflow/stacking-context (the Names card etc).
+// is NEVER clipped by parent overflow or stacking-context (the Names card etc).
+//
+// Flip-up behaviour: when the trigger is too close to the bottom of the viewport,
+// the menu opens upward instead of downward so it never falls off-screen or behind
+// the next form section visually.
 
 const PORTAL_Z = 9999;
+const MENU_MAX = 280;
+const MENU_GAP = 6;
+const VIEWPORT_PAD = 8;
 
 export default function Select({
   value,
   onChange,
   options = [],
-  placeholder = 'Select…',
+  placeholder = 'Select\u2026',
   emptyHint = '',
   disabled = false,
   invalid = false,
@@ -26,7 +33,15 @@ export default function Select({
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPos({ top: r.bottom + 6, left: r.left, width: r.width });
+    const vh = window.innerHeight;
+    const spaceBelow = vh - r.bottom - VIEWPORT_PAD;
+    const spaceAbove = r.top - VIEWPORT_PAD;
+    const flip = spaceBelow < Math.min(MENU_MAX, 200) && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(140, Math.min(MENU_MAX, flip ? spaceAbove - MENU_GAP : spaceBelow - MENU_GAP));
+    const top = flip
+      ? Math.max(VIEWPORT_PAD, r.top - maxHeight - MENU_GAP)
+      : r.bottom + MENU_GAP;
+    setPos({ top, left: r.left, width: r.width, maxHeight });
   };
 
   useLayoutEffect(() => {
@@ -63,7 +78,14 @@ export default function Select({
   const chevronCls = 'shrink-0 transition ' + (open ? 'rotate-180' : '');
 
   const menuStyle = pos
-    ? { position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: PORTAL_Z, maxHeight: 240 }
+    ? {
+        position: 'fixed',
+        top: pos.top,
+        left: pos.left,
+        width: pos.width,
+        maxHeight: pos.maxHeight,
+        zIndex: PORTAL_Z,
+      }
     : { display: 'none' };
 
   return (

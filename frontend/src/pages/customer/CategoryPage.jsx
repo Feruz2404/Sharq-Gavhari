@@ -62,7 +62,11 @@ export default function CategoryPage() {
             {products.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         ) : (
-          <EmptyState title={t('common.empty')} description="This category has no items right now." icon="image" />
+          <EmptyState
+            title={t('common.empty')}
+            description={t('menu.noProductsInCategory')}
+            icon="image"
+          />
         )}
       </main>
     </div>
