@@ -39,7 +39,11 @@ export default function AdminSidebar() {
     </>
   );
 
-  const onLogout = () => { logout(); nav('/admin/login'); };
+  const onLogout = () => {
+    logout();
+    try { localStorage.removeItem('sg_auth'); } catch (_) {}
+    nav('/admin/login', { replace: true });
+  };
 
   return (
     <>

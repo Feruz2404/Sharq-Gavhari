@@ -5,6 +5,7 @@ export default {
     back: 'Back',
     openMenu: 'Open menu',
     closeMenu: 'Close menu',
+    backToMenu: 'Back to menu',
   },
   brand: {
     tagline: 'A premium dining experience',
@@ -65,6 +66,9 @@ export default {
       'Tip: if you don\u2019t see the Share button, open this page in Safari (Chrome and other browsers on iOS don\u2019t support installing PWAs).',
     gotIt: 'Got it',
     close: 'Close',
+    updateAvailable: 'Update available',
+    update: 'Update',
+    updating: 'Updating...',
   },
   admin: {
     login: 'Login',

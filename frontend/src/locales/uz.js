@@ -5,6 +5,7 @@ export default {
     back: 'Orqaga',
     openMenu: 'Menyuni ochish',
     closeMenu: 'Menyuni yopish',
+    backToMenu: 'Menyuga qaytish',
   },
   brand: {
     tagline: 'Yuksak gastronomiya tajribasi',
@@ -66,6 +67,9 @@ export default {
       'Maslahat: agar \u201cUlashish\u201d tugmasini ko\u02BBrmasangiz, sahifani Safari brauzerida oching (Chrome yoki boshqa brauzerlarda iOS bu funksiyani qo\u02BBllab-quvvatlamaydi).',
     gotIt: 'Tushunarli',
     close: 'Yopish',
+    updateAvailable: 'Yangilanish mavjud',
+    update: 'Yangilash',
+    updating: 'Yangilanmoqda...',
   },
   admin: {
     login: 'Kirish',

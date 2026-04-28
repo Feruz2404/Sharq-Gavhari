@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useT } from '../../locales/useT.js';
 
@@ -11,6 +11,12 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // If already authenticated, send admin straight to dashboard.
+  useEffect(() => {
+    const token = useAuthStore.getState().token;
+    if (token) nav('/admin/dashboard', { replace: true });
+  }, [nav]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -55,6 +61,9 @@ export default function AdminLogin() {
         </div>
         {err && <div className="text-red-400 text-sm">{err}</div>}
         <button disabled={busy} className="btn-gold mt-2">{busy ? '...' : t('admin.login')}</button>
+        <Link to="/menu" className="btn-ghost mt-1 justify-center text-sm">
+          {t('nav.backToMenu')}
+        </Link>
       </form>
     </div>
   );

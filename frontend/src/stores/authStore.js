@@ -13,7 +13,10 @@ export const useAuthStore = create(persist(
       return admin;
     },
 
-    logout: () => set({ token: null, admin: null }),
+    logout: () => {
+      set({ token: null, admin: null });
+      try { localStorage.removeItem('sg_auth'); } catch (_) {}
+    },
 
     checkAuth: async () => {
       try {
@@ -22,6 +25,7 @@ export const useAuthStore = create(persist(
         return true;
       } catch (e) {
         set({ token: null, admin: null });
+        try { localStorage.removeItem('sg_auth'); } catch (_) {}
         return false;
       }
     },

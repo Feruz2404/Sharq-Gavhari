@@ -5,6 +5,7 @@ export default {
     back: 'Назад',
     openMenu: 'Открыть меню',
     closeMenu: 'Закрыть меню',
+    backToMenu: 'Вернуться в меню',
   },
   brand: {
     tagline: 'Премиум гастрономический опыт',
@@ -65,6 +66,9 @@ export default {
       'Совет: если кнопки «Поделиться» нет — откройте страницу в Safari (Chrome и другие браузеры на iOS этого не поддерживают).',
     gotIt: 'Понятно',
     close: 'Закрыть',
+    updateAvailable: 'Доступно обновление',
+    update: 'Обновить',
+    updating: 'Обновление...',
   },
   admin: {
     login: 'Войти',

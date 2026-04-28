@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../admin/AdminSidebar.jsx';
 import InstallAppButton from '../pwa/InstallAppButton.jsx';
+import UpdateBanner from '../pwa/UpdateBanner.jsx';
 
 export default function AdminLayout() {
   return (
@@ -12,6 +13,7 @@ export default function AdminLayout() {
         </div>
         <Outlet />
       </main>
+      <UpdateBanner />
     </div>
   );
 }
