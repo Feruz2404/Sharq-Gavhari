@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../components/common/Icon.jsx';
 import CustomerSidebar from '../../components/menu/CustomerSidebar.jsx';
@@ -14,34 +14,35 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
 
-const gridFade = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.3 },
-};
 const heroFade = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.45 },
 };
+const sectionFade = {
+  initial: { opacity: 0, y: 8 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.1 },
+  transition: { duration: 0.35 },
+};
 
 /**
- * Customer menu page (sidebar + main layout).
+ * Customer menu page \u2014 continuous restaurant menu flow.
  *
- *   Desktop (lg+):  | sidebar (w-72) | main content                 |
+ *   Desktop (lg+):  | sticky sidebar (w-72) | scrollable main content    |
  *   Mobile/Tablet:  top bar w/ hamburger \u2192 drawer sidebar; main below.
  *
- * Sidebar contents: brand, language switcher, search, vertical category nav,
- * admin / install / cart shortcuts. Selecting a category filters in-page.
- *
- * Main content:
- *   1. Compact hero (uses settings.background_image_url as the DISTINCT hero
- *      visual; the page background gradient is decoupled \u2014 see
- *      settingsStore + index.css)
- *   2. Either: category cards grid (default home view) OR filtered product
- *      grid (when a category is selected or search is active)
- *
- * The old "Featured" row and duplicate "general menu" grid are removed.
+ * Behavior:
+ *   - Loads categories + products once.
+ *   - Renders ALL active categories that have products as stacked sections.
+ *   - Each section has id `category-${slug}` so it can be linked / deep-linked.
+ *   - An IntersectionObserver scroll-spies the visible section and sets the
+ *     active sidebar item.
+ *   - Clicking a sidebar item or a top category card smooth-scrolls to that
+ *     section without unmounting other sections, so the menu reads as one
+ *     continuous document.
+ *   - Search filters products inside each section; categories with no match
+ *     are hidden. Empty state shows only when nothing matches.
  */
 export default function MenuPage() {
   const lang = useLanguageStore((s) => s.language);
@@ -51,45 +52,123 @@ export default function MenuPage() {
   const [cats, setCats] = useState([]);
   const [prods, setProds] = useState([]);
   const [q, setQ] = useState('');
-  const [activeCat, setActiveCat] = useState('all');
+  const [activeCatId, setActiveCatId] = useState('all');
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // refs to each <section> so we can scroll to / observe them.
+  const sectionRefs = useRef({});
+  // While a programmatic smooth-scroll is in flight, ignore scroll-spy updates
+  // so the active item doesn't ping-pong.
+  const programmaticScrollRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([categoryService.list(), productService.list()])
       .then(([c, p]) => {
         if (cancelled) return;
-        setCats(c.filter((x) => x.is_active !== false));
-        setProds(p.filter((x) => x.is_active !== false));
+        setCats((c || []).filter((x) => x.is_active !== false));
+        setProds((p || []).filter((x) => x.is_active !== false));
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
-  const productCounts = useMemo(() => {
-    const m = {};
+  // Group products by category id, preserving category order.
+  const byCategory = useMemo(() => {
+    const m = new Map();
+    for (const c of cats) m.set(c.id, []);
     for (const p of prods) {
-      const k = p.category_id;
-      if (!k) continue;
-      m[k] = (m[k] || 0) + 1;
+      if (m.has(p.category_id)) m.get(p.category_id).push(p);
     }
     return m;
-  }, [prods]);
+  }, [cats, prods]);
 
-  const filtered = useMemo(() => {
-    let list = prods;
-    if (activeCat !== 'all') list = list.filter((p) => p.category_id === activeCat);
-    if (q.trim()) {
-      const needle = q.toLowerCase();
-      list = list.filter((p) => {
+  const productCounts = useMemo(() => {
+    const out = {};
+    for (const [id, list] of byCategory) out[id] = list.length;
+    return out;
+  }, [byCategory]);
+
+  // Apply search filter. Empty query keeps the full grouping.
+  const filteredByCategory = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return byCategory;
+    const m = new Map();
+    for (const c of cats) {
+      const list = (byCategory.get(c.id) || []).filter((p) => {
         const n = getLocalizedField(p, 'name', lang).toLowerCase();
         const d = getLocalizedField(p, 'description', lang).toLowerCase();
         return n.includes(needle) || d.includes(needle);
       });
+      if (list.length) m.set(c.id, list);
     }
-    return list;
-  }, [prods, q, activeCat, lang]);
+    return m;
+  }, [byCategory, cats, q, lang]);
+
+  // Categories that should actually be rendered (have at least one product
+  // after filtering).
+  const visibleCats = useMemo(
+    () => cats.filter((c) => (filteredByCategory.get(c.id) || []).length > 0),
+    [cats, filteredByCategory]
+  );
+
+  const totalFilteredCount = useMemo(() => {
+    let n = 0;
+    for (const list of filteredByCategory.values()) n += list.length;
+    return n;
+  }, [filteredByCategory]);
+
+  // Scrollspy: observe each rendered category section and pick the topmost
+  // one currently inside a horizontal band in the middle of the viewport.
+  useEffect(() => {
+    if (loading) return;
+    const elements = visibleCats
+      .map((c) => sectionRefs.current[c.id])
+      .filter(Boolean);
+    if (elements.length === 0) {
+      setActiveCatId('all');
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (programmaticScrollRef.current) return;
+        const visibleEntries = entries.filter((e) => e.isIntersecting);
+        if (visibleEntries.length === 0) return;
+        visibleEntries.sort(
+          (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+        );
+        const id = visibleEntries[0].target.getAttribute('data-cat-id');
+        if (id) setActiveCatId(id);
+      },
+      {
+        // Detection band: middle ~15% of the viewport. Sections crossing this
+        // band become the active section.
+        rootMargin: '-30% 0px -55% 0px',
+        threshold: [0, 0.1, 0.5, 1],
+      }
+    );
+    for (const el of elements) observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading, visibleCats]);
+
+  const handleSelectCategory = (id) => {
+    setDrawerOpen(false);
+    if (id === 'all') {
+      setActiveCatId('all');
+      programmaticScrollRef.current = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.setTimeout(() => { programmaticScrollRef.current = false; }, 800);
+      return;
+    }
+    const el = sectionRefs.current[id];
+    if (!el) return;
+    programmaticScrollRef.current = true;
+    setActiveCatId(id);
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => { programmaticScrollRef.current = false; }, 800);
+  };
 
   const heroBg = (settings && (settings.background_image_url || settings.background_url)) || '';
   const heroBgStyle = useMemo(
@@ -98,18 +177,12 @@ export default function MenuPage() {
   );
 
   const restaurantName = (settings && settings.restaurant_name) || 'Sharq Gavhari';
-  const isFiltering = !!q.trim() || activeCat !== 'all';
+  const isSearching = !!q.trim();
+  const hasAnyResults = visibleCats.length > 0;
 
-  const activeCatObj = activeCat !== 'all'
-    ? cats.find((c) => c.id === activeCat) || null
-    : null;
-  const filteredTitle = q.trim()
-    ? t('menu.filteredTitle')
-    : (activeCatObj ? getLocalizedField(activeCatObj, 'name', lang) : t('menu.filteredTitle'));
-
-  const handleSelectCategory = (id) => {
-    setActiveCat(id);
-    setDrawerOpen(false);
+  const setSectionRef = (id) => (el) => {
+    if (el) sectionRefs.current[id] = el;
+    else delete sectionRefs.current[id];
   };
 
   return (
@@ -140,7 +213,7 @@ export default function MenuPage() {
             categories={cats}
             productCounts={productCounts}
             totalCount={prods.length}
-            activeCategoryId={activeCat}
+            activeCategoryId={activeCatId}
             onSelectCategory={handleSelectCategory}
             query={q}
             onQueryChange={setQ}
@@ -155,7 +228,7 @@ export default function MenuPage() {
           categories={cats}
           productCounts={productCounts}
           totalCount={prods.length}
-          activeCategoryId={activeCat}
+          activeCategoryId={activeCatId}
           onSelectCategory={handleSelectCategory}
           query={q}
           onQueryChange={setQ}
@@ -167,8 +240,8 @@ export default function MenuPage() {
             <MenuSkeleton />
           ) : (
             <>
-              {/* Compact hero \u2014 shown only on the default home view */}
-              {!isFiltering && (
+              {/* Hero \u2014 hidden while searching to keep results immediate */}
+              {!isSearching && (
                 <motion.section
                   {...heroFade}
                   className="relative overflow-hidden rounded-3xl border border-white/10 shadow-soft"
@@ -199,8 +272,8 @@ export default function MenuPage() {
                 </motion.section>
               )}
 
-              {/* Categories grid \u2014 default home view */}
-              {!isFiltering && cats.length > 0 && (
+              {/* Top category cards \u2014 jump links to sections */}
+              {!isSearching && cats.length > 0 && (
                 <section>
                   <div className="flex items-end justify-between mb-3 md:mb-4">
                     <h2 className="font-display text-xl md:text-2xl gold-text">
@@ -220,40 +293,66 @@ export default function MenuPage() {
                 </section>
               )}
 
-              {/* Filtered products */}
-              {isFiltering && (
-                <section>
-                  <div className="flex items-end justify-between mb-3">
-                    <h2 className="font-display text-xl md:text-2xl gold-text truncate">
-                      {filteredTitle}
-                    </h2>
-                    <button
-                      type="button"
-                      className="text-xs text-white/55 hover:text-white shrink-0"
-                      onClick={() => { setQ(''); setActiveCat('all'); }}
+              {/* Continuous category sections */}
+              {hasAnyResults ? (
+                visibleCats.map((c) => {
+                  const list = filteredByCategory.get(c.id) || [];
+                  const name = getLocalizedField(c, 'name', lang);
+                  const desc = getLocalizedField(c, 'description', lang);
+                  const slug = c.slug || c.id;
+                  return (
+                    <motion.section
+                      key={c.id}
+                      ref={setSectionRef(c.id)}
+                      data-cat-id={c.id}
+                      data-cat-slug={slug}
+                      id={'category-' + slug}
+                      className="scroll-mt-24 lg:scroll-mt-10"
+                      {...sectionFade}
                     >
-                      {t('common.clear')}
-                    </button>
-                  </div>
-                  {filtered.length > 0 ? (
-                    <motion.div
-                      {...gridFade}
-                      className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"
-                    >
-                      {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
-                    </motion.div>
-                  ) : (
-                    <EmptyState
-                      title={t('common.empty')}
-                      description={
-                        q.trim()
-                          ? t('common.tryDifferent')
-                          : t('menu.noProductsInCategory')
-                      }
-                      icon="search"
-                    />
-                  )}
-                </section>
+                      <header className="flex items-end justify-between mb-3 md:mb-4 gap-4">
+                        <div className="min-w-0">
+                          <h2 className="font-display text-xl md:text-2xl gold-text truncate">
+                            {name}
+                          </h2>
+                          {desc && (
+                            <p className="text-white/55 text-xs md:text-sm mt-1 line-clamp-2 max-w-2xl">
+                              {desc}
+                            </p>
+                          )}
+                        </div>
+                        <div className="hidden md:flex items-center gap-3 shrink-0 mb-1">
+                          <span className="text-[11px] tabular-nums text-white/40 uppercase tracking-[0.2em]">
+                            {list.length}
+                          </span>
+                          <div className="divider-gold w-24 mb-1" />
+                        </div>
+                      </header>
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                        {list.map((p) => <ProductCard key={p.id} product={p} />)}
+                      </div>
+                    </motion.section>
+                  );
+                })
+              ) : (
+                <EmptyState
+                  title={t('common.empty')}
+                  description={isSearching ? t('common.tryDifferent') : t('menu.noProductsInCategory')}
+                  icon="search"
+                />
+              )}
+
+              {/* Clear search shortcut */}
+              {isSearching && hasAnyResults && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setQ('')}
+                    className="btn-ghost text-xs"
+                  >
+                    {t('common.clear')} ({totalFilteredCount})
+                  </button>
+                </div>
               )}
             </>
           )}
