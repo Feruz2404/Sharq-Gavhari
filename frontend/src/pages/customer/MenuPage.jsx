@@ -6,7 +6,6 @@ import ProductCard from '../../components/menu/ProductCard.jsx';
 import ProductDetailDrawer from '../../components/menu/ProductDetailDrawer.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import MenuSkeleton from '../../components/common/MenuSkeleton.jsx';
-import AdminAccessButton from '../../components/common/AdminAccessButton.jsx';
 import { categoryService } from '../../services/categoryService.js';
 import { productService } from '../../services/productService.js';
 import { useSettingsStore } from '../../stores/settingsStore.js';
@@ -61,7 +60,7 @@ export default function MenuPage() {
     return counts;
   }, [prods]);
 
-  // Default selected category: first active category with at least one product.
+  // Default selected category: first active category that has at least one product.
   useEffect(() => {
     if (loading) return;
     if (activeCatId !== null) return;
@@ -118,17 +117,7 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen text-white">
-      <CustomerSidebar
-        variant="fixed"
-        categories={cats}
-        productCounts={productCounts}
-        totalCount={prods.length}
-        activeCategoryId={activeCatId}
-        onSelectCategory={handleSelectCategory}
-        query={q}
-        onQueryChange={setQ}
-      />
-
+      {/* Mobile hamburger trigger \u2014 only on small screens. */}
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
@@ -138,6 +127,7 @@ export default function MenuPage() {
         <span aria-hidden className="text-lg leading-none">\u2630</span>
       </button>
 
+      {/* Mobile drawer (off-canvas). */}
       <CustomerSidebar
         variant="drawer"
         open={mobileNavOpen}
@@ -151,9 +141,30 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
-      <main className="lg:ml-[280px] xl:ml-[300px] min-h-screen">
-        <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-10">
-          <motion.section initial={heroFade.initial} animate={heroFade.animate} transition={heroFade.transition} className="mb-7">
+      {/* Two-column grid on desktop, single column on mobile. */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-16 lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6">
+        {/* Sidebar column \u2014 only on lg+ via grid. */}
+        <aside className="hidden lg:block min-w-0">
+          <CustomerSidebar
+            variant="fixed"
+            categories={cats}
+            productCounts={productCounts}
+            totalCount={prods.length}
+            activeCategoryId={activeCatId}
+            onSelectCategory={handleSelectCategory}
+            query={q}
+            onQueryChange={setQ}
+          />
+        </aside>
+
+        {/* Main content column. Normal document flow \u2014 nothing absolute or fixed. */}
+        <main className="min-w-0">
+          <motion.section
+            initial={heroFade.initial}
+            animate={heroFade.animate}
+            transition={heroFade.transition}
+            className="mb-6"
+          >
             <div className="text-[11px] uppercase tracking-[0.22em] text-gold/80">
               {t('hero.eyebrow')}
             </div>
@@ -170,18 +181,18 @@ export default function MenuPage() {
           ) : (
             <>
               {cats.length > 0 && (
-                <section className="mb-8">
+                <section className="mb-7">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-display text-lg md:text-xl text-white/90">
                       {t('menu.categoriesTitle')}
                     </h2>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]">
                     <button
                       type="button"
                       onClick={() => handleSelectCategory('all')}
                       className={
-                        'glass aspect-[5/4] flex flex-col items-center justify-center text-center p-3 rounded-2xl transition ' +
+                        'glass aspect-[4/3] flex flex-col items-center justify-center text-center p-3 rounded-2xl transition ' +
                         (activeCatId === 'all'
                           ? 'ring-2 ring-gold/60 bg-gold/5'
                           : 'hover:bg-white/[0.04]')
@@ -235,7 +246,7 @@ export default function MenuPage() {
                     initial={gridFade.initial}
                     animate={gridFade.animate}
                     transition={gridFade.transition}
-                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"
+                    className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"
                   >
                     {filteredProducts.map((p) => (
                       <ProductCard key={p.id} product={p} onOpen={handleOpenProduct} />
@@ -245,10 +256,9 @@ export default function MenuPage() {
               </section>
             </>
           )}
-        </div>
-      </main>
+        </main>
+      </div>
 
-      <AdminAccessButton />
       <ProductDetailDrawer
         product={selectedProduct}
         open={drawerOpen}
