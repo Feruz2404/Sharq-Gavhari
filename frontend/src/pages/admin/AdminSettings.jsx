@@ -21,6 +21,7 @@ export default function AdminSettings() {
     restaurant_name: '',
     logo_url: '',
     background_image_url: '',
+    global_background_image_url: '',
     phone: '',
     accent_color: '#D4AF37',
     default_language: 'uz',
@@ -38,6 +39,7 @@ export default function AdminSettings() {
       logo_url: settings.logo_url || '',
       background_image_url:
         settings.background_image_url || settings.background_url || '',
+      global_background_image_url: settings.global_background_image_url || '',
       phone: settings.phone || '',
       accent_color: settings.accent_color || '#D4AF37',
       default_language: settings.default_language || 'uz',
@@ -55,12 +57,13 @@ export default function AdminSettings() {
         restaurant_name: f.restaurant_name,
         logo_url: f.logo_url || null,
         background_image_url: f.background_image_url || null,
+        global_background_image_url: f.global_background_image_url || null,
         phone: f.phone || null,
         accent_color: f.accent_color,
         default_language: f.default_language,
       });
       // Re-fetch so the public menu and other consumers immediately see the
-      // persisted row (logo / background) without an extra reload.
+      // persisted row (logo / hero / global background) without an extra reload.
       await fetchSettings();
       setSaved(true);
       toast.success(t('admin.settingsSaved'));
@@ -77,9 +80,22 @@ export default function AdminSettings() {
     }
   };
 
-  const previewBgStyle = useMemo(
+  // \u2014 Live preview style memos \u2014
+  // Global background covers the whole preview panel.
+  const previewGlobalBgStyle = useMemo(
+    () => (f.global_background_image_url
+      ? { backgroundImage: 'url(' + f.global_background_image_url + ')' }
+      : undefined),
+    [f.global_background_image_url]
+  );
+  // Hero/header image is a smaller inset card inside the preview.
+  const previewHeroBgStyle = useMemo(
     () => (f.background_image_url
-      ? { backgroundImage: 'url(' + f.background_image_url + ')' }
+      ? {
+          backgroundImage:
+            'linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.75) 100%), url(' +
+            f.background_image_url + ')',
+        }
       : undefined),
     [f.background_image_url]
   );
@@ -118,7 +134,7 @@ export default function AdminSettings() {
 
       <div className="grid xl:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
         <div className="grid gap-5 min-w-0">
-          {/* Brand section */}
+          {/* Restaurant details (name + phone) */}
           <section className="card grid gap-4">
             <header className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
@@ -151,7 +167,22 @@ export default function AdminSettings() {
                 />
               </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
+          </section>
+
+          {/* Branding assets \u2014 logo + hero + global background */}
+          <section className="card grid gap-4">
+            <header className="flex items-baseline justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-display text-base text-white/90 truncate">
+                  {t('admin.brandingAssets')}
+                </div>
+                <div className="text-[12px] text-white/45 mt-0.5">
+                  {t('admin.highQualityImagesSupported')}
+                </div>
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-gold/70 shrink-0">Assets</span>
+            </header>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               <ImageUpload
                 value={f.logo_url}
                 onChange={set('logo_url')}
@@ -168,12 +199,26 @@ export default function AdminSettings() {
                 onChange={set('background_image_url')}
                 label={t('admin.background')}
                 bucket="backgrounds"
+                folder="hero"
                 aspect="4 / 3"
                 uploadLabel={t('admin.uploadBackground')}
                 changeLabel={t('admin.changeBackground')}
                 removeLabel={t('admin.remove')}
                 placeholder={t('admin.backgroundPlaceholder')}
                 helperText={t('admin.backgroundHelper')}
+              />
+              <ImageUpload
+                value={f.global_background_image_url}
+                onChange={set('global_background_image_url')}
+                label={t('admin.globalBackground')}
+                bucket="backgrounds"
+                folder="global"
+                aspect="16 / 10"
+                uploadLabel={t('admin.uploadGlobalBackground')}
+                changeLabel={t('admin.changeGlobalBackground')}
+                removeLabel={t('admin.remove')}
+                placeholder={t('admin.globalBackgroundPlaceholder')}
+                helperText={t('admin.globalBackgroundHelper')}
               />
             </div>
           </section>
@@ -245,29 +290,74 @@ export default function AdminSettings() {
             <span className="text-[10px] uppercase tracking-[0.22em] text-gold/70">Preview</span>
           </div>
           <div className="rounded-3xl border border-white/10 overflow-hidden shadow-soft relative aspect-[3/4] bg-black">
-            {f.background_image_url ? (
-              <div className="absolute inset-0 bg-cover bg-center" style={previewBgStyle} aria-hidden="true" />
+            {/* Layer 0: global background image OR fallback gradient */}
+            {f.global_background_image_url ? (
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={previewGlobalBgStyle}
+                aria-hidden="true"
+              />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-900/30 via-zinc-950 to-black" aria-hidden="true" />
+              <div
+                className="absolute inset-0 bg-gradient-to-br from-amber-900/30 via-zinc-950 to-black"
+                aria-hidden="true"
+              />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black" aria-hidden="true" />
-            <div className="relative z-10 h-full p-5 flex flex-col">
+            {/* Layer 1: dark gradient vignette for legibility */}
+            <div
+              className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/55 to-black/85"
+              aria-hidden="true"
+            />
+            {/* Layer 10: content */}
+            <div className="relative z-10 h-full p-5 flex flex-col gap-4">
+              {/* Logo + restaurant name */}
               <div className="flex items-center gap-2.5">
                 {f.logo_url ? (
-                  <img src={f.logo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-gold/40" />
+                  <img
+                    src={f.logo_url}
+                    alt=""
+                    className="w-10 h-10 rounded-full object-cover ring-1 ring-gold/40"
+                  />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-sm">SG</div>
+                  <div className="w-10 h-10 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-sm">
+                    SG
+                  </div>
                 )}
-                <div className="font-display text-lg leading-tight truncate" style={previewBrandStyle}>
+                <div
+                  className="font-display text-lg leading-tight truncate"
+                  style={previewBrandStyle}
+                >
                   {f.restaurant_name || 'Sharq Gavhari'}
                 </div>
               </div>
-              <div className="mt-auto">
-                <div className="text-[10px] uppercase tracking-[0.32em] text-white/55">Premium Cuisine</div>
-                <div className="font-display text-2xl text-white mt-1 leading-tight">
-                  {f.restaurant_name || 'Sharq Gavhari'}
+
+              {/* Inset hero card */}
+              <div
+                className="rounded-2xl border border-white/10 overflow-hidden bg-black/30 backdrop-blur-md aspect-[5/3] relative"
+                style={previewHeroBgStyle}
+              >
+                {!f.background_image_url && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-800/25 via-black/60 to-black/90" aria-hidden="true" />
+                )}
+                <div className="absolute inset-0 p-3 flex flex-col justify-end">
+                  <div className="text-[10px] uppercase tracking-[0.28em] text-gold/85">
+                    Hero
+                  </div>
+                  <div className="font-display text-base text-white leading-tight">
+                    {f.restaurant_name || 'Sharq Gavhari'}
+                  </div>
                 </div>
-                <div className="mt-3 inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold" style={previewChipStyle}>
+              </div>
+
+              {/* CTA + tag */}
+              <div className="mt-auto">
+                <div className="text-[10px] uppercase tracking-[0.32em] text-white/55">
+                  Premium Cuisine
+                </div>
+                <div
+                  className="mt-2 inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold"
+                  style={previewChipStyle}
+                >
                   {t('common.showWaiter')}
                 </div>
               </div>
