@@ -2,23 +2,37 @@ import { useEffect, useState } from 'react';
 import GlassCard from '../../components/common/GlassCard.jsx';
 import { categoryService } from '../../services/categoryService.js';
 import { productService } from '../../services/productService.js';
-import { tableService } from '../../services/tableService.js';
 import { useT } from '../../locales/useT.js';
+
+// Tables/Stollar stat removed: feature is no longer surfaced in admin UI.
 
 export default function AdminDashboard() {
   const t = useT();
-  const [stats, setStats] = useState({ categories: 0, products: 0, available: 0, tables: 0 });
+  const [stats, setStats] = useState({
+    categories: 0,
+    products: 0,
+    available: 0,
+    unavailable: 0,
+  });
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const [c, p, ta] = await Promise.all([categoryService.list(), productService.list(), tableService.list()]);
-      setStats({
-        categories: c.length,
-        products: p.length,
-        available: p.filter((x) => x.is_available).length,
-        tables: ta.length,
-      });
+      try {
+        const [c, p] = await Promise.all([categoryService.list(), productService.list()]);
+        if (cancelled) return;
+        const products = p || [];
+        setStats({
+          categories: (c || []).length,
+          products: products.length,
+          available: products.filter((x) => x.is_available).length,
+          unavailable: products.filter((x) => !x.is_available).length,
+        });
+      } catch (_) {
+        /* keep zeros on failure so the dashboard still renders */
+      }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   const Card = ({ label, value }) => (
@@ -32,10 +46,10 @@ export default function AdminDashboard() {
     <div className="grid gap-4">
       <h1 className="font-display text-2xl gold-text">{t('admin.dashboard')}</h1>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card label={t('admin.categories')} value={stats.categories} />
-        <Card label={t('admin.products')}   value={stats.products} />
+        <Card label={t('admin.categories')}  value={stats.categories} />
+        <Card label={t('admin.products')}    value={stats.products} />
         <Card label={t('admin.isAvailable')} value={stats.available} />
-        <Card label={t('admin.tables')}     value={stats.tables} />
+        <Card label={t('common.unavailable')} value={stats.unavailable} />
       </div>
     </div>
   );

@@ -20,12 +20,14 @@ const TabletMenuPage       = lazy(() => import('../pages/tablet/TabletMenuPage.j
 const TabletCartPage       = lazy(() => import('../pages/tablet/TabletCartPage.jsx'));
 
 // Admin
+// NOTE: AdminTables route intentionally not registered. The Tables/Stollar
+// feature has been removed from the admin UI surface. The page file may still
+// exist on disk for legacy reference but is unreachable from the router.
 const AdminLogin           = lazy(() => import('../pages/admin/AdminLogin.jsx'));
 const AdminDashboard       = lazy(() => import('../pages/admin/AdminDashboard.jsx'));
 const AdminCategories      = lazy(() => import('../pages/admin/AdminCategories.jsx'));
 const AdminProducts        = lazy(() => import('../pages/admin/AdminProducts.jsx'));
 const AdminSettings        = lazy(() => import('../pages/admin/AdminSettings.jsx'));
-const AdminTables          = lazy(() => import('../pages/admin/AdminTables.jsx'));
 
 export default function AppRouter() {
   return (
@@ -56,7 +58,8 @@ export default function AppRouter() {
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/products"   element={<AdminProducts />} />
           <Route path="/admin/settings"   element={<AdminSettings />} />
-          <Route path="/admin/tables"     element={<AdminTables />} />
+          {/* Tables route removed on purpose. */}
+          <Route path="/admin/tables"     element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/menu" replace />} />

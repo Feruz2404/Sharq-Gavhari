@@ -29,12 +29,14 @@ export default function AdminSidebar() {
   const admin  = useAuthStore((s) => s.admin);
   const [open, setOpen] = useState(false);
 
+  // Tables / "Stollar" navigation has been intentionally removed from the admin
+  // UI. The backend route may still exist for legacy callers, but it is no
+  // longer surfaced anywhere in the admin panel.
   const items = (
     <>
       <Item to="/admin/dashboard"  label={t('admin.dashboard')}  icon="dashboard" onClick={() => setOpen(false)} />
       <Item to="/admin/categories" label={t('admin.categories')} icon="list"      onClick={() => setOpen(false)} />
       <Item to="/admin/products"   label={t('admin.products')}   icon="image"     onClick={() => setOpen(false)} />
-      <Item to="/admin/tables"     label={t('admin.tables')}     icon="qr"        onClick={() => setOpen(false)} />
       <Item to="/admin/settings"   label={t('admin.settings')}   icon="gear"      onClick={() => setOpen(false)} />
     </>
   );

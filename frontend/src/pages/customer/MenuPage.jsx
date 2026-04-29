@@ -28,6 +28,7 @@ export default function MenuPage() {
   const t = useT();
   const lang = useLanguageStore((s) => s.language);
   const settings = useSettingsStore((s) => s.settings);
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
   const [cats, setCats] = useState([]);
   const [prods, setProds] = useState([]);
@@ -65,6 +66,12 @@ export default function MenuPage() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  // Make sure settings (logo / background / accent) are loaded so the public
+  // /menu reflects whatever was saved in /admin/settings.
+  useEffect(() => {
+    if (!settings) fetchSettings();
+  }, [settings, fetchSettings]);
 
   // Group products by category id.
   const productsByCat = useMemo(() => {
@@ -198,6 +205,25 @@ export default function MenuPage() {
     return cat ? getLocalizedField(cat, 'name', lang) : '';
   }, [selectedProduct, cats, lang]);
 
+  // Hero backdrop: when admin uploads a background image we render it as the
+  // hero of /menu (with a dark gradient overlay for legibility). Falls back
+  // to the plain hero text block when no image is set.
+  const heroBg = settings && settings.background_image_url;
+  const heroStyle = useMemo(
+    () => (heroBg
+      ? {
+          backgroundImage:
+            'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.85) 100%), url(' + heroBg + ')',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }
+      : undefined),
+    [heroBg]
+  );
+  const heroClass = heroBg
+    ? 'mb-6 relative overflow-hidden rounded-3xl border border-white/10 px-5 py-8 lg:px-8 lg:py-10'
+    : 'mb-6';
+
   return (
     <div className="min-h-screen text-white">
       <button
@@ -206,7 +232,7 @@ export default function MenuPage() {
         aria-label={t('nav.openMenu')}
         className="lg:hidden fixed top-3 left-3 z-30 w-10 h-10 rounded-full bg-black/60 backdrop-blur border border-white/10 text-white flex items-center justify-center"
       >
-        <span aria-hidden className="text-lg leading-none">☰</span>
+        <span aria-hidden className="text-lg leading-none">\u2630</span>
       </button>
 
       <CustomerSidebar
@@ -239,7 +265,8 @@ export default function MenuPage() {
             initial={heroFade.initial}
             animate={heroFade.animate}
             transition={heroFade.transition}
-            className="mb-6"
+            className={heroClass}
+            style={heroStyle}
           >
             <div className="text-[11px] uppercase tracking-[0.22em] text-gold/80">
               {t('hero.eyebrow')}
@@ -247,7 +274,7 @@ export default function MenuPage() {
             <h1 className="mt-2 font-display text-3xl md:text-4xl lg:text-5xl gold-text">
               {restaurantName}
             </h1>
-            <p className="mt-2 text-white/60 text-sm md:text-base max-w-2xl">
+            <p className="mt-2 text-white/70 text-sm md:text-base max-w-2xl">
               {mode === 'overview' ? t('menu.chooseCategory') : t('hero.description')}
             </p>
           </motion.section>
@@ -289,7 +316,7 @@ export default function MenuPage() {
                   onClick={handleBackToOverview}
                   className="btn-ghost !py-1.5 !px-3 text-sm"
                 >
-                  <span aria-hidden className="leading-none">←</span>
+                  <span aria-hidden className="leading-none">\u2190</span>
                   <span>{t('menu.backToCategories')}</span>
                 </button>
               </div>
