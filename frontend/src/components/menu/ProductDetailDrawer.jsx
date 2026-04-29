@@ -24,8 +24,8 @@ const mobileExit = { y: '100%' };
 const panelTransition = { type: 'spring', stiffness: 320, damping: 32 };
 
 const FALLBACK_GRADIENT = (
-  <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/20 to-zinc-950 flex items-center justify-center">
-    <span className="font-display text-5xl text-gold/40">SG</span>
+  <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/25 to-zinc-950 flex items-center justify-center">
+    <span className="font-display text-6xl text-gold/40 drop-shadow-[0_2px_12px_rgba(212,175,55,0.25)]">SG</span>
   </div>
 );
 
@@ -48,7 +48,7 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-export default function ProductDetailDrawer({ product, open, onClose }) {
+export default function ProductDetailDrawer({ product, categoryName, open, onClose }) {
   const lang = useLanguageStore((s) => s.language);
   const t = useT();
   const addItem = useCartStore((s) => s.addItem);
@@ -88,8 +88,8 @@ export default function ProductDetailDrawer({ product, open, onClose }) {
   };
 
   const panelClass = isDesktop
-    ? 'fixed top-0 right-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-bg/95 backdrop-blur-xl border-l border-white/10 shadow-2xl'
-    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[92vh] rounded-t-3xl bg-bg/95 backdrop-blur-xl border-t border-white/10 shadow-2xl';
+    ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[ -24px_0_60px_-20px_rgba(0,0,0,0.7)]'
+    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[90vh] rounded-t-3xl bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl';
 
   const panelInitial = isDesktop ? desktopInitial : mobileInitial;
   const panelAnimate = isDesktop ? desktopAnimate : mobileAnimate;
@@ -125,7 +125,7 @@ export default function ProductDetailDrawer({ product, open, onClose }) {
               aria-label={t('common.close')}
               className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/10"
             >
-              <span aria-hidden className="text-base leading-none">\u2715</span>
+              <span aria-hidden className="text-base leading-none">×</span>
             </button>
 
             <div className="overflow-y-auto flex-1">
@@ -136,23 +136,35 @@ export default function ProductDetailDrawer({ product, open, onClose }) {
                   fallback={FALLBACK_GRADIENT}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
                 {!isDesktop && (
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-white/30" />
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-white/40" />
                 )}
               </div>
 
               <div className="p-5 md:p-6 space-y-5">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-gold/70 mb-1">
-                    {t('menu.productDetails')}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-gold/80">
+                      {t('menu.productDetails')}
+                    </span>
+                    {categoryName && (
+                      <>
+                        <span aria-hidden className="text-white/30 text-[10px]">•</span>
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-white/55">
+                          {categoryName}
+                        </span>
+                      </>
+                    )}
                   </div>
-                  <h2 className="font-display text-2xl md:text-3xl gold-text">{name}</h2>
-                  <div className="mt-2 h-px w-10 bg-gold/60" />
+                  <h2 className="mt-2 font-display text-2xl md:text-3xl gold-text leading-tight">
+                    {name}
+                  </h2>
+                  <div className="mt-2 h-px w-12 bg-gold/60" />
                 </div>
 
                 {desc && (
-                  <p className="text-white/75 text-sm md:text-base leading-relaxed">{desc}</p>
+                  <p className="text-white/80 text-sm md:text-base leading-relaxed">{desc}</p>
                 )}
 
                 {ingredients && (
@@ -160,14 +172,14 @@ export default function ProductDetailDrawer({ product, open, onClose }) {
                     <div className="text-[11px] uppercase tracking-[0.18em] text-gold/80 mb-1.5">
                       {t('menu.ingredients')}
                     </div>
-                    <p className="text-white/65 text-sm leading-relaxed">{ingredients}</p>
+                    <p className="text-white/70 text-sm leading-relaxed">{ingredients}</p>
                   </div>
                 )}
 
                 {(weight || prepTime) && (
                   <div className="grid grid-cols-2 gap-3">
                     {weight && (
-                      <div className="glass-soft p-3 rounded-xl border border-white/5">
+                      <div className="glass p-3 rounded-xl">
                         <div className="text-[10px] uppercase tracking-wider text-white/45">
                           {t('menu.weight')}
                         </div>
@@ -175,7 +187,7 @@ export default function ProductDetailDrawer({ product, open, onClose }) {
                       </div>
                     )}
                     {prepTime && (
-                      <div className="glass-soft p-3 rounded-xl border border-white/5">
+                      <div className="glass p-3 rounded-xl">
                         <div className="text-[10px] uppercase tracking-wider text-white/45">
                           {t('menu.prepTime')}
                         </div>
@@ -208,9 +220,9 @@ export default function ProductDetailDrawer({ product, open, onClose }) {
                   aria-label="-"
                   className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold"
                 >
-                  <span aria-hidden className="text-base leading-none">\u2212</span>
+                  <span aria-hidden className="text-base leading-none">−</span>
                 </button>
-                <div className="w-8 text-center text-white text-sm">{qty}</div>
+                <div className="w-8 text-center text-white text-sm tabular-nums">{qty}</div>
                 <button
                   type="button"
                   onClick={() => setQty((v) => v + 1)}

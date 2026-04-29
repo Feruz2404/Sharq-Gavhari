@@ -22,6 +22,9 @@ import { useT } from '../../locales/useT.js';
  * Both modes share the SAME inner content via <SidebarContent/>: brand block,
  * language switcher, search input, vertical category navigation list, and a
  * footer cluster (admin + install + cart link).
+ *
+ * NOTE: the sidebar no longer renders an "All" / "Barchasi" entry. The customer
+ * menu page treats category selection as the primary action.
  */
 export default function CustomerSidebar({
   variant = 'fixed',
@@ -29,13 +32,11 @@ export default function CustomerSidebar({
   onClose,
   categories = [],
   productCounts = {},
-  totalCount = 0,
-  activeCategoryId = 'all',
+  activeCategoryId = null,
   onSelectCategory,
   query = '',
   onQueryChange,
 }) {
-  // Lock body scroll while drawer is open.
   useEffect(() => {
     if (variant !== 'drawer' || !open) return;
     const prev = document.body.style.overflow;
@@ -43,7 +44,6 @@ export default function CustomerSidebar({
     return () => { document.body.style.overflow = prev; };
   }, [variant, open]);
 
-  // Close drawer on Escape.
   useEffect(() => {
     if (variant !== 'drawer' || !open) return;
     const onKey = (e) => { if (e.key === 'Escape' && onClose) onClose(); };
@@ -57,7 +57,6 @@ export default function CustomerSidebar({
         <SidebarContent
           categories={categories}
           productCounts={productCounts}
-          totalCount={totalCount}
           activeCategoryId={activeCategoryId}
           onSelectCategory={onSelectCategory}
           query={query}
@@ -95,7 +94,6 @@ export default function CustomerSidebar({
               <SidebarContent
                 categories={categories}
                 productCounts={productCounts}
-                totalCount={totalCount}
                 activeCategoryId={activeCategoryId}
                 onSelectCategory={onSelectCategory}
                 query={query}
@@ -120,7 +118,6 @@ const DRAWER_TRANS   = { type: 'spring', stiffness: 320, damping: 32 };
 function SidebarContent({
   categories,
   productCounts,
-  totalCount,
   activeCategoryId,
   onSelectCategory,
   query,
@@ -157,7 +154,7 @@ function SidebarContent({
             </div>
             {tableNumber ? (
               <div className="text-[10px] text-white/55 uppercase tracking-[0.18em] mt-0.5 truncate">
-                {t('common.table')} \u00B7 #{tableNumber}
+                {t('common.table')} · #{tableNumber}
               </div>
             ) : (
               <div className="text-[10px] text-white/45 uppercase tracking-[0.18em] mt-0.5 truncate">
@@ -190,19 +187,12 @@ function SidebarContent({
 
       <div className="divider-gold opacity-60" />
 
-      {/* Category navigation */}
+      {/* Category navigation \u2014 NO "All" entry. */}
       <div>
         <div className="text-[10px] uppercase tracking-[0.22em] text-white/45 px-2 mb-2">
           {t('menu.categoriesTitle')}
         </div>
         <nav className="grid gap-0.5">
-          <NavItem
-            label={t('menu.allCategories')}
-            count={totalCount}
-            active={activeCategoryId === 'all'}
-            onClick={() => onSelectCategory && onSelectCategory('all')}
-            iconName="list"
-          />
           {categories.map((c) => {
             const name = getLocalizedField(c, 'name', lang);
             const initial = (name || '?').trim().charAt(0).toUpperCase();
@@ -245,7 +235,7 @@ function SidebarContent({
   );
 }
 
-function NavItem({ label, count, active, onClick, iconName, imageUrl, initial }) {
+function NavItem({ label, count, active, onClick, imageUrl, initial }) {
   const cls =
     'group w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition ' +
     (active
@@ -260,10 +250,6 @@ function NavItem({ label, count, active, onClick, iconName, imageUrl, initial })
           alt=""
           className="w-7 h-7 rounded-lg object-cover ring-1 ring-white/10 shrink-0"
         />
-      ) : iconName ? (
-        <span className="w-7 h-7 rounded-lg bg-white/[0.06] grid place-items-center shrink-0">
-          <Icon name={iconName} size={14} className="text-white/70" />
-        </span>
       ) : (
         <span className="w-7 h-7 rounded-lg bg-white/[0.06] ring-1 ring-white/10 grid place-items-center font-display text-gold text-sm shrink-0">
           {initial}
