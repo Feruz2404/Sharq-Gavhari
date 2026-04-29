@@ -6,6 +6,7 @@ import ProductCard from '../../components/menu/ProductCard.jsx';
 import ProductDetailDrawer from '../../components/menu/ProductDetailDrawer.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import MenuSkeleton from '../../components/common/MenuSkeleton.jsx';
+import Icon from '../../components/common/Icon.jsx';
 import { categoryService } from '../../services/categoryService.js';
 import { productService } from '../../services/productService.js';
 import { useSettingsStore } from '../../stores/settingsStore.js';
@@ -16,7 +17,7 @@ import { useT } from '../../locales/useT.js';
 const heroFade = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4 },
+  transition: { duration: 0.45, ease: 'easeOut' },
 };
 const sectionsFade = {
   initial: { opacity: 0 },
@@ -67,13 +68,10 @@ export default function MenuPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Make sure settings (logo / background / accent) are loaded so the public
-  // /menu reflects whatever was saved in /admin/settings.
   useEffect(() => {
     if (!settings) fetchSettings();
   }, [settings, fetchSettings]);
 
-  // Group products by category id.
   const productsByCat = useMemo(() => {
     const map = {};
     for (const p of prods) {
@@ -91,13 +89,11 @@ export default function MenuPage() {
     return counts;
   }, [productsByCat]);
 
-  // Visible categories slice when in products mode.
   const visibleCats = useMemo(() => {
     if (mode !== 'products') return [];
     return cats.slice(startIdx);
   }, [cats, startIdx, mode]);
 
-  // Apply search filter to products inside each visible category section.
   const visibleSections = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return visibleCats
@@ -115,7 +111,6 @@ export default function MenuPage() {
       .filter((s) => s.products.length > 0);
   }, [visibleCats, productsByCat, q, lang]);
 
-  // Filter category cards in overview by search.
   const overviewCats = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return cats;
@@ -125,7 +120,6 @@ export default function MenuPage() {
     });
   }, [cats, q, lang]);
 
-  // Scrollspy in products mode.
   useEffect(() => {
     if (mode !== 'products' || visibleSections.length === 0) return undefined;
     const observer = new IntersectionObserver(
@@ -205,15 +199,15 @@ export default function MenuPage() {
     return cat ? getLocalizedField(cat, 'name', lang) : '';
   }, [selectedProduct, cats, lang]);
 
-  // Hero backdrop: when admin uploads a background image we render it as the
+  // Hero backdrop: when admin uploads a hero image we render it as the
   // hero of /menu (with a dark gradient overlay for legibility). Falls back
-  // to the plain hero text block when no image is set.
+  // to a plain text block when no image is set.
   const heroBg = settings && settings.background_image_url;
   const heroStyle = useMemo(
     () => (heroBg
       ? {
           backgroundImage:
-            'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.85) 100%), url(' + heroBg + ')',
+            'linear-gradient(180deg, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.78) 70%, rgba(0,0,0,0.92) 100%), url(' + heroBg + ')',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }
@@ -221,8 +215,8 @@ export default function MenuPage() {
     [heroBg]
   );
   const heroClass = heroBg
-    ? 'mb-6 relative overflow-hidden rounded-3xl border border-white/10 px-5 py-8 lg:px-8 lg:py-10'
-    : 'mb-6';
+    ? 'mb-7 relative overflow-hidden rounded-3xl border border-white/10 px-6 py-9 lg:px-9 lg:py-12 shadow-soft'
+    : 'mb-7';
 
   return (
     <div className="min-h-screen text-white">
@@ -230,9 +224,9 @@ export default function MenuPage() {
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label={t('nav.openMenu')}
-        className="lg:hidden fixed top-3 left-3 z-30 w-10 h-10 rounded-full bg-black/60 backdrop-blur border border-white/10 text-white flex items-center justify-center"
+        className="lg:hidden fixed top-3 left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft"
       >
-        <span aria-hidden className="text-lg leading-none">\u2630</span>
+        <Icon name="menu" size={18} />
       </button>
 
       <CustomerSidebar
@@ -247,7 +241,7 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-16 lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-16 lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7">
         <aside className="hidden lg:block min-w-0">
           <CustomerSidebar
             variant="fixed"
@@ -268,13 +262,14 @@ export default function MenuPage() {
             className={heroClass}
             style={heroStyle}
           >
-            <div className="text-[11px] uppercase tracking-[0.22em] text-gold/80">
+            <div className="text-[11px] uppercase tracking-[0.32em] text-gold/85 font-medium">
               {t('hero.eyebrow')}
             </div>
-            <h1 className="mt-2 font-display text-3xl md:text-4xl lg:text-5xl gold-text">
+            <h1 className="mt-3 font-display text-3xl md:text-4xl lg:text-5xl gold-text leading-[1.05] text-balance">
               {restaurantName}
             </h1>
-            <p className="mt-2 text-white/70 text-sm md:text-base max-w-2xl">
+            <div className="mt-3.5 h-px w-16 bg-gradient-to-r from-gold/85 via-gold/45 to-transparent" />
+            <p className="mt-4 text-white/72 text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
               {mode === 'overview' ? t('menu.chooseCategory') : t('hero.description')}
             </p>
           </motion.section>
@@ -283,11 +278,16 @@ export default function MenuPage() {
             <MenuSkeleton />
           ) : mode === 'overview' ? (
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display text-lg md:text-xl text-white/90">
-                  {t('menu.categoriesTitle')}
-                </h2>
-                <span className="text-white/45 text-sm">{overviewCats.length}</span>
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
+                    {t('menu.categoriesTitle')}
+                  </div>
+                  <h2 className="font-display text-xl md:text-2xl text-white/95 leading-tight">
+                    {t('menu.chooseCategory')}
+                  </h2>
+                </div>
+                <span className="text-white/45 text-sm tabular-nums shrink-0">{overviewCats.length}</span>
               </div>
               {overviewCats.length === 0 ? (
                 <EmptyState
@@ -296,7 +296,7 @@ export default function MenuPage() {
                   icon="image"
                 />
               ) : (
-                <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]">
+                <div className="grid gap-3 md:gap-4 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
                   {overviewCats.map((c) => (
                     <CategoryCard
                       key={c.id}
@@ -314,9 +314,9 @@ export default function MenuPage() {
                 <button
                   type="button"
                   onClick={handleBackToOverview}
-                  className="btn-ghost !py-1.5 !px-3 text-sm"
+                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] text-white/80 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition"
                 >
-                  <span aria-hidden className="leading-none">\u2190</span>
+                  <Icon name="back" size={14} className="transition group-hover:-translate-x-0.5" />
                   <span>{t('menu.backToCategories')}</span>
                 </button>
               </div>
@@ -332,7 +332,7 @@ export default function MenuPage() {
                   initial={sectionsFade.initial}
                   animate={sectionsFade.animate}
                   transition={sectionsFade.transition}
-                  className="space-y-10"
+                  className="space-y-12"
                 >
                   {visibleSections.map((s) => (
                     <section
@@ -342,16 +342,17 @@ export default function MenuPage() {
                       ref={(el) => { sectionRefs.current[s.category.id] = el; }}
                       className="scroll-mt-24"
                     >
-                      <div className="flex items-end justify-between gap-3 mb-4">
-                        <div>
-                          <div className="text-[11px] uppercase tracking-[0.22em] text-gold/70 mb-1">
+                      <div className="flex items-end justify-between gap-3 mb-5">
+                        <div className="min-w-0">
+                          <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
                             {t('menu.categoriesTitle')}
                           </div>
-                          <h2 className="font-display text-2xl md:text-3xl gold-text">
+                          <h2 className="font-display text-2xl md:text-3xl gold-text leading-[1.1] truncate">
                             {getLocalizedField(s.category, 'name', lang)}
                           </h2>
+                          <div className="mt-2 h-px w-10 bg-gradient-to-r from-gold/80 via-gold/40 to-transparent" />
                         </div>
-                        <span className="text-white/45 text-sm shrink-0">{s.products.length}</span>
+                        <span className="text-white/45 text-sm tabular-nums shrink-0 mb-1">{s.products.length}</span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                         {s.products.map((p) => (
