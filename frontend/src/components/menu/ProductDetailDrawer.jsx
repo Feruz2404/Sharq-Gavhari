@@ -88,8 +88,8 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
   };
 
   const panelClass = isDesktop
-    ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[ -24px_0_60px_-20px_rgba(0,0,0,0.7)]'
-    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[90vh] rounded-t-3xl bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl';
+    ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[-24px_0_60px_-20px_rgba(0,0,0,0.7)]'
+    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[92vh] rounded-t-3xl bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl';
 
   const panelInitial = isDesktop ? desktopInitial : mobileInitial;
   const panelAnimate = isDesktop ? desktopAnimate : mobileAnimate;
@@ -123,9 +123,9 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
               type="button"
               onClick={onClose}
               aria-label={t('common.close')}
-              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/10"
+              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 hover:text-gold text-white/90 flex items-center justify-center border border-white/10 transition"
             >
-              <span aria-hidden className="text-base leading-none">×</span>
+              <Icon name="close" size={14} />
             </button>
 
             <div className="overflow-y-auto flex-1">
@@ -136,40 +136,43 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                   fallback={FALLBACK_GRADIENT}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
                 {!isDesktop && (
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-white/40" />
+                  <div
+                    aria-hidden="true"
+                    className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-white/40"
+                  />
                 )}
               </div>
 
               <div className="p-5 md:p-6 space-y-5">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-gold/80">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-gold/80">
                       {t('menu.productDetails')}
                     </span>
                     {categoryName && (
                       <>
-                        <span aria-hidden className="text-white/30 text-[10px]">•</span>
-                        <span className="text-[10px] uppercase tracking-[0.18em] text-white/55">
+                        <span aria-hidden="true" className="text-white/30 text-[10px]">\u2022</span>
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
                           {categoryName}
                         </span>
                       </>
                     )}
                   </div>
-                  <h2 className="mt-2 font-display text-2xl md:text-3xl gold-text leading-tight">
+                  <h2 className="mt-2.5 font-display text-2xl md:text-3xl gold-text leading-[1.1] text-balance">
                     {name}
                   </h2>
-                  <div className="mt-2 h-px w-12 bg-gold/60" />
+                  <div className="mt-2.5 h-px w-12 bg-gradient-to-r from-gold/80 via-gold/40 to-transparent" />
                 </div>
 
                 {desc && (
-                  <p className="text-white/80 text-sm md:text-base leading-relaxed">{desc}</p>
+                  <p className="text-white/80 text-sm md:text-base leading-relaxed text-pretty">{desc}</p>
                 )}
 
                 {ingredients && (
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-gold/80 mb-1.5">
+                    <div className="text-[10.5px] uppercase tracking-[0.22em] text-gold/80 mb-1.5">
                       {t('menu.ingredients')}
                     </div>
                     <p className="text-white/70 text-sm leading-relaxed">{ingredients}</p>
@@ -180,18 +183,18 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                   <div className="grid grid-cols-2 gap-3">
                     {weight && (
                       <div className="glass p-3 rounded-xl">
-                        <div className="text-[10px] uppercase tracking-wider text-white/45">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">
                           {t('menu.weight')}
                         </div>
-                        <div className="text-white text-sm mt-0.5">{weight}</div>
+                        <div className="text-white text-sm mt-1">{weight}</div>
                       </div>
                     )}
                     {prepTime && (
                       <div className="glass p-3 rounded-xl">
-                        <div className="text-[10px] uppercase tracking-wider text-white/45">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">
                           {t('menu.prepTime')}
                         </div>
-                        <div className="text-white text-sm mt-0.5">{prepTime}</div>
+                        <div className="text-white text-sm mt-1">{prepTime}</div>
                       </div>
                     )}
                   </div>
@@ -204,7 +207,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                     className="text-lg"
                   />
                   {unavailable && (
-                    <span className="text-[11px] uppercase tracking-wider bg-red-600/85 text-white px-2 py-1 rounded-md">
+                    <span className="text-[10.5px] uppercase tracking-[0.2em] bg-zinc-800/80 ring-1 ring-white/15 text-white/85 px-2 py-1 rounded-md">
                       {t('common.unavailable')}
                     </span>
                   )}
@@ -213,21 +216,22 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             </div>
 
             <div className="border-t border-white/10 p-4 md:p-5 flex items-center gap-3 bg-black/40">
-              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5">
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04]">
                 <button
                   type="button"
                   onClick={() => setQty((v) => Math.max(1, v - 1))}
-                  aria-label="-"
-                  className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold"
+                  aria-label={t('common.decrease') || 'minus'}
+                  className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold transition"
+                  disabled={qty <= 1}
                 >
-                  <span aria-hidden className="text-base leading-none">−</span>
+                  <Icon name="minus" size={14} />
                 </button>
                 <div className="w-8 text-center text-white text-sm tabular-nums">{qty}</div>
                 <button
                   type="button"
                   onClick={() => setQty((v) => v + 1)}
-                  aria-label="+"
-                  className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold"
+                  aria-label={t('common.increase') || 'plus'}
+                  className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold transition"
                 >
                   <Icon name="plus" size={14} />
                 </button>

@@ -21,10 +21,9 @@ import { useT } from '../../locales/useT.js';
  *
  * Both modes share the SAME inner content via <SidebarContent/>: brand block,
  * language switcher, search input, vertical category navigation list, and a
- * footer cluster (admin + install + cart link).
- *
- * NOTE: the sidebar no longer renders an "All" / "Barchasi" entry. The customer
- * menu page treats category selection as the primary action.
+ * footer cluster (admin + install + cart link). The sidebar does NOT render an
+ * "All" / "Barchasi" entry \u2014 the customer menu page treats category
+ * selection as the primary action.
  */
 export default function CustomerSidebar({
   variant = 'fixed',
@@ -133,7 +132,7 @@ function SidebarContent({
   const restaurantName = (settings && settings.restaurant_name) || 'Sharq Gavhari';
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* Brand block + (drawer-only) close button */}
       <div className="flex items-start gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -141,10 +140,10 @@ function SidebarContent({
             <img
               src={settings.logo_url}
               alt=""
-              className="w-11 h-11 rounded-full object-cover ring-1 ring-gold/40 shrink-0"
+              className="w-12 h-12 rounded-full object-cover ring-1 ring-gold/40 shrink-0 shadow-[0_0_18px_-4px_rgba(212,175,55,0.45)]"
             />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-base shrink-0">
+            <div className="w-12 h-12 rounded-full bg-gold/15 ring-1 ring-gold/40 grid place-items-center font-display text-gold text-base shrink-0 shadow-[0_0_18px_-4px_rgba(212,175,55,0.45)]">
               SG
             </div>
           )}
@@ -153,11 +152,11 @@ function SidebarContent({
               {restaurantName}
             </div>
             {tableNumber ? (
-              <div className="text-[10px] text-white/55 uppercase tracking-[0.18em] mt-0.5 truncate">
-                {t('common.table')} · #{tableNumber}
+              <div className="text-[10px] text-white/55 uppercase tracking-[0.22em] mt-1 truncate">
+                {t('common.table')} \u00b7 #{tableNumber}
               </div>
             ) : (
-              <div className="text-[10px] text-white/45 uppercase tracking-[0.18em] mt-0.5 truncate">
+              <div className="text-[10px] text-white/45 uppercase tracking-[0.22em] mt-1 truncate">
                 {t('brand.tagline')}
               </div>
             )}
@@ -185,12 +184,15 @@ function SidebarContent({
         <SearchBar value={query} onChange={onQueryChange} />
       </div>
 
-      <div className="divider-gold opacity-60" />
+      <div className="divider-gold opacity-50" />
 
-      {/* Category navigation \u2014 NO "All" entry. */}
+      {/* Category navigation. */}
       <div>
-        <div className="text-[10px] uppercase tracking-[0.22em] text-white/45 px-2 mb-2">
-          {t('menu.categoriesTitle')}
+        <div className="flex items-center justify-between px-1 mb-2.5">
+          <span className="text-[10px] uppercase tracking-[0.28em] text-gold/70">
+            {t('menu.categoriesTitle')}
+          </span>
+          <span className="text-[10px] text-white/35 tabular-nums">{categories.length}</span>
         </div>
         <nav className="grid gap-0.5">
           {categories.map((c) => {
@@ -211,7 +213,7 @@ function SidebarContent({
         </nav>
       </div>
 
-      <div className="divider-gold opacity-60" />
+      <div className="divider-gold opacity-50" />
 
       {/* Footer actions */}
       <div className="flex items-center gap-2">
@@ -225,7 +227,7 @@ function SidebarContent({
         >
           <Icon name="cart" size={16} className="text-white/85" />
           {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gold text-black text-[10px] font-bold grid place-items-center">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-black text-[10px] font-bold grid place-items-center tabular-nums shadow-gold">
               {cartCount}
             </span>
           )}
@@ -236,30 +238,50 @@ function SidebarContent({
 }
 
 function NavItem({ label, count, active, onClick, imageUrl, initial }) {
+  // Active state uses a left-edge gold accent bar plus a soft gold tint so the
+  // selected category reads at a glance without overpowering the panel.
   const cls =
-    'group w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition ' +
+    'group relative w-full flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-xl text-left transition ' +
     (active
-      ? 'bg-gold/12 text-gold ring-1 ring-gold/30'
+      ? 'bg-gold/[0.08] text-gold'
       : 'text-white/75 hover:text-white hover:bg-white/[0.05]');
 
   return (
     <button type="button" onClick={onClick} className={cls} aria-pressed={active}>
+      {active && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-gradient-to-b from-gold/0 via-gold to-gold/0"
+        />
+      )}
       {imageUrl ? (
         <img
           src={imageUrl}
           alt=""
-          className="w-7 h-7 rounded-lg object-cover ring-1 ring-white/10 shrink-0"
+          className={
+            'w-7 h-7 rounded-lg object-cover ring-1 shrink-0 transition ' +
+            (active ? 'ring-gold/40' : 'ring-white/10 group-hover:ring-white/20')
+          }
         />
       ) : (
-        <span className="w-7 h-7 rounded-lg bg-white/[0.06] ring-1 ring-white/10 grid place-items-center font-display text-gold text-sm shrink-0">
+        <span
+          className={
+            'w-7 h-7 rounded-lg grid place-items-center font-display text-sm shrink-0 ring-1 transition ' +
+            (active
+              ? 'bg-gold/15 ring-gold/40 text-gold'
+              : 'bg-white/[0.06] ring-white/10 text-gold/85 group-hover:ring-white/20')
+          }
+        >
           {initial}
         </span>
       )}
       <span className="flex-1 truncate text-sm">{label}</span>
       <span
         className={
-          'shrink-0 text-[11px] tabular-nums px-1.5 rounded-md ' +
-          (active ? 'text-gold/90' : 'text-white/35 group-hover:text-white/55')
+          'shrink-0 text-[11px] tabular-nums px-1.5 py-0.5 rounded-md transition ' +
+          (active
+            ? 'text-gold/90 bg-gold/10 ring-1 ring-gold/25'
+            : 'text-white/45 group-hover:text-white/65 bg-white/[0.04] ring-1 ring-white/[0.06]')
         }
       >
         {count}
