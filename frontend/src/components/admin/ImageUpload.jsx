@@ -7,9 +7,12 @@ import { useToast } from '../common/Toast.jsx';
 function friendlyError(err) {
   const status = err && err.response && err.response.status;
   const apiMsg = err && err.response && err.response.data && err.response.data.error;
+  const code = err && err.response && err.response.data && err.response.data.code;
+  if (code === 'IMAGE_TOO_LARGE') return apiMsg || 'Image is too large.';
+  if (code === 'UNSUPPORTED_FILE_TYPE') return apiMsg || 'Unsupported file type.';
   if (apiMsg && /bucket/i.test(apiMsg)) return apiMsg;
   if (status === 401 || status === 403) return 'Not authorized \u2014 please log in again.';
-  if (status === 413) return 'Image too large (max 5MB).';
+  if (status === 413) return apiMsg || 'Image too large.';
   return apiMsg || (err && err.message) || 'Upload failed';
 }
 
@@ -17,12 +20,12 @@ function friendlyError(err) {
  * ImageUpload
  *
  * Premium dark/gold image picker with drag-and-drop, click-to-browse, live
- * thumbnail preview, loading state, and a remove action. Designed to make
- * the primary action visually obvious without breaking existing call sites.
+ * thumbnail preview, loading state, and a remove action.
  *
  * Props (all optional except value/onChange):
  *  - value, onChange   : current image URL and setter (string)
  *  - bucket            : storage bucket key (default: 'logos')
+ *  - folder            : optional storage sub-folder (e.g. 'global', 'hero')
  *  - label             : section label rendered above the dropzone
  *  - aspect            : CSS aspect-ratio for the thumbnail (default '1 / 1')
  *  - uploadLabel       : button text when no image is set (default 'Upload')
@@ -35,6 +38,7 @@ export default function ImageUpload({
   value,
   onChange,
   bucket = 'logos',
+  folder,
   label = 'Image',
   aspect = '1 / 1',
   uploadLabel = 'Upload',
@@ -56,8 +60,10 @@ export default function ImageUpload({
     if (!/^image\//.test(file.type)) { setErr('Please select an image file'); return; }
     setBusy(true); setErr('');
     try {
-      const res = await uploadService.upload(file, bucket);
-      onChange(res.image_url);
+      const res = await uploadService.upload(file, bucket, folder);
+      // Backend returns both `image_url` (legacy) and `url` (new). Prefer
+      // `image_url` for back-compat with prior frontend versions.
+      onChange(res.image_url || res.url);
       toast.success((label || 'Image') + ' uploaded');
     } catch (x) {
       const msg = friendlyError(x);
@@ -85,7 +91,7 @@ export default function ImageUpload({
     : 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-gold text-black hover:brightness-110 transition disabled:opacity-50 shadow-[0_2px_18px_-4px_rgba(212,175,55,0.55)]';
 
   const fallbackPlaceholder =
-    'Drop an image, or click to browse (jpg, png, webp \u00B7 \u2264 5MB)';
+    'Drop an image, or click to browse (jpg, png, webp \u00B7 high quality supported)';
 
   return (
     <div className="grid gap-2">

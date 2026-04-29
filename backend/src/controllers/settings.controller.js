@@ -7,6 +7,7 @@ const ALLOWED = new Set([
   'logo_url',
   'background_url',
   'background_image_url',
+  'global_background_image_url',
   'phone',
   'instagram',
   'telegram',
@@ -36,8 +37,8 @@ function sanitize(input) {
   return out;
 }
 
-// Always expose both background fields to the client regardless of whether
-// the optional `background_image_url` column has been added to the schema.
+// Always expose the canonical set of branding fields to the client even when
+// the underlying schema is missing one of the optional columns.
 function expand(row) {
   if (!row) return row;
   const bg = row.background_image_url || row.background_url || null;
@@ -45,26 +46,35 @@ function expand(row) {
     ...row,
     background_url: row.background_url || bg,
     background_image_url: row.background_image_url || bg,
+    global_background_image_url: row.global_background_image_url || null,
   };
 }
 
-// Some installations may not yet have the optional `background_image_url`
-// column. If Supabase complains about it, retry without that field so the
-// rest of the save still succeeds.
+// Some installations may not yet have the optional columns. If Supabase
+// complains about an unknown column, retry without that field so the rest
+// of the save still succeeds. Iterates so multiple optional columns can be
+// stripped in turn.
+const OPTIONAL_COLUMNS = ['background_image_url', 'global_background_image_url'];
+
 async function safeWrite(body, idFilter) {
   const exec = (b) =>
     idFilter
       ? supabase.from('settings').update(b).eq('id', idFilter).select().single()
       : supabase.from('settings').insert(b).select().single();
 
-  let res = await exec(body);
-  if (
-    res.error &&
-    /background_image_url/i.test(String(res.error.message || '')) &&
-    'background_image_url' in body
-  ) {
-    const { background_image_url, ...rest } = body;
-    res = await exec(rest);
+  let attempt = { ...body };
+  let res = await exec(attempt);
+  let safety = OPTIONAL_COLUMNS.length;
+  while (res.error && safety-- > 0) {
+    const msg = String(res.error.message || '');
+    const offending = OPTIONAL_COLUMNS.find(
+      (col) => col in attempt && new RegExp(col, 'i').test(msg)
+    );
+    if (!offending) break;
+    const next = { ...attempt };
+    delete next[offending];
+    attempt = next;
+    res = await exec(attempt);
   }
   if (res.error) throw res.error;
   return res.data;
