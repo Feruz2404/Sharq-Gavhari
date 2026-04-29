@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import Icon from '../../components/common/Icon.jsx';
 import CustomerSidebar from '../../components/menu/CustomerSidebar.jsx';
 import CategoryCard from '../../components/menu/CategoryCard.jsx';
 import ProductCard from '../../components/menu/ProductCard.jsx';
+import ProductDetailDrawer from '../../components/menu/ProductDetailDrawer.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import MenuSkeleton from '../../components/common/MenuSkeleton.jsx';
 import AdminAccessButton from '../../components/common/AdminAccessButton.jsx';
@@ -15,349 +15,245 @@ import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
 
 const heroFade = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45 },
-};
-const sectionFade = {
   initial: { opacity: 0, y: 8 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.1 },
-  transition: { duration: 0.35 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4 },
 };
 
-/**
- * Customer menu page \u2014 continuous restaurant menu flow.
- *
- *   Desktop (lg+):  | sticky sidebar (w-72) | scrollable main content    |
- *   Mobile/Tablet:  top bar w/ hamburger \u2192 drawer sidebar; main below.
- *
- * Behavior:
- *   - Loads categories + products once.
- *   - Renders ALL active categories that have products as stacked sections.
- *   - Each section has id `category-${slug}` so it can be linked / deep-linked.
- *   - An IntersectionObserver scroll-spies the visible section and sets the
- *     active sidebar item.
- *   - Clicking a sidebar item or a top category card smooth-scrolls to that
- *     section without unmounting other sections, so the menu reads as one
- *     continuous document.
- *   - Search filters products inside each section; categories with no match
- *     are hidden. Empty state shows only when nothing matches.
- */
+const gridFade = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  transition: { duration: 0.25 },
+};
+
 export default function MenuPage() {
+  const t = useT();
   const lang = useLanguageStore((s) => s.language);
   const settings = useSettingsStore((s) => s.settings);
-  const t = useT();
-
   const [cats, setCats] = useState([]);
   const [prods, setProds] = useState([]);
+  const [activeCatId, setActiveCatId] = useState(null);
   const [q, setQ] = useState('');
-  const [activeCatId, setActiveCatId] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // refs to each <section> so we can scroll to / observe them.
-  const sectionRefs = useRef({});
-  // While a programmatic smooth-scroll is in flight, ignore scroll-spy updates
-  // so the active item doesn't ping-pong.
-  const programmaticScrollRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([categoryService.list(), productService.list()])
       .then(([c, p]) => {
         if (cancelled) return;
-        setCats((c || []).filter((x) => x.is_active !== false));
-        setProds((p || []).filter((x) => x.is_active !== false));
+        const activeCats = (c || []).filter((x) => x.is_active !== false);
+        const activeProds = (p || []).filter((x) => x.is_active !== false);
+        setCats(activeCats);
+        setProds(activeProds);
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
-  // Group products by category id, preserving category order.
-  const byCategory = useMemo(() => {
-    const m = new Map();
-    for (const c of cats) m.set(c.id, []);
-    for (const p of prods) {
-      if (m.has(p.category_id)) m.get(p.category_id).push(p);
-    }
-    return m;
-  }, [cats, prods]);
-
   const productCounts = useMemo(() => {
-    const out = {};
-    for (const [id, list] of byCategory) out[id] = list.length;
-    return out;
-  }, [byCategory]);
-
-  // Apply search filter. Empty query keeps the full grouping.
-  const filteredByCategory = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return byCategory;
-    const m = new Map();
-    for (const c of cats) {
-      const list = (byCategory.get(c.id) || []).filter((p) => {
-        const n = getLocalizedField(p, 'name', lang).toLowerCase();
-        const d = getLocalizedField(p, 'description', lang).toLowerCase();
-        return n.includes(needle) || d.includes(needle);
-      });
-      if (list.length) m.set(c.id, list);
+    const counts = {};
+    for (const p of prods) {
+      counts[p.category_id] = (counts[p.category_id] || 0) + 1;
     }
-    return m;
-  }, [byCategory, cats, q, lang]);
+    return counts;
+  }, [prods]);
 
-  // Categories that should actually be rendered (have at least one product
-  // after filtering).
-  const visibleCats = useMemo(
-    () => cats.filter((c) => (filteredByCategory.get(c.id) || []).length > 0),
-    [cats, filteredByCategory]
-  );
-
-  const totalFilteredCount = useMemo(() => {
-    let n = 0;
-    for (const list of filteredByCategory.values()) n += list.length;
-    return n;
-  }, [filteredByCategory]);
-
-  // Scrollspy: observe each rendered category section and pick the topmost
-  // one currently inside a horizontal band in the middle of the viewport.
+  // Default selected category: first active category with at least one product.
   useEffect(() => {
     if (loading) return;
-    const elements = visibleCats
-      .map((c) => sectionRefs.current[c.id])
-      .filter(Boolean);
-    if (elements.length === 0) {
-      setActiveCatId('all');
-      return undefined;
+    if (activeCatId !== null) return;
+    const firstWithProducts = cats.find((c) => (productCounts[c.id] || 0) > 0);
+    setActiveCatId(firstWithProducts ? firstWithProducts.id : 'all');
+  }, [loading, cats, productCounts, activeCatId]);
+
+  const filteredProducts = useMemo(() => {
+    let list = prods;
+    if (activeCatId && activeCatId !== 'all') {
+      list = list.filter((p) => p.category_id === activeCatId);
     }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (programmaticScrollRef.current) return;
-        const visibleEntries = entries.filter((e) => e.isIntersecting);
-        if (visibleEntries.length === 0) return;
-        visibleEntries.sort(
-          (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
-        );
-        const id = visibleEntries[0].target.getAttribute('data-cat-id');
-        if (id) setActiveCatId(id);
-      },
-      {
-        // Detection band: middle ~15% of the viewport. Sections crossing this
-        // band become the active section.
-        rootMargin: '-30% 0px -55% 0px',
-        threshold: [0, 0.1, 0.5, 1],
-      }
-    );
-    for (const el of elements) observer.observe(el);
-    return () => observer.disconnect();
-  }, [loading, visibleCats]);
-
-  const handleSelectCategory = (id) => {
-    setDrawerOpen(false);
-    if (id === 'all') {
-      setActiveCatId('all');
-      programmaticScrollRef.current = true;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      window.setTimeout(() => { programmaticScrollRef.current = false; }, 800);
-      return;
+    const needle = q.trim().toLowerCase();
+    if (needle) {
+      list = list.filter((p) => {
+        const n = (getLocalizedField(p, 'name', lang) || '').toLowerCase();
+        const d = (getLocalizedField(p, 'description', lang) || '').toLowerCase();
+        return n.includes(needle) || d.includes(needle);
+      });
     }
-    const el = sectionRefs.current[id];
-    if (!el) return;
-    programmaticScrollRef.current = true;
-    setActiveCatId(id);
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.setTimeout(() => { programmaticScrollRef.current = false; }, 800);
-  };
+    return list;
+  }, [prods, activeCatId, q, lang]);
 
-  const heroBg = (settings && (settings.background_image_url || settings.background_url)) || '';
-  const heroBgStyle = useMemo(
-    () => (heroBg ? { backgroundImage: 'url(' + heroBg + ')' } : undefined),
-    [heroBg]
+  const activeCategory = useMemo(
+    () => (activeCatId && activeCatId !== 'all' ? cats.find((c) => c.id === activeCatId) : null),
+    [cats, activeCatId]
   );
 
-  const restaurantName = (settings && settings.restaurant_name) || 'Sharq Gavhari';
-  const isSearching = !!q.trim();
-  const hasAnyResults = visibleCats.length > 0;
-
-  const setSectionRef = (id) => (el) => {
-    if (el) sectionRefs.current[id] = el;
-    else delete sectionRefs.current[id];
+  const handleSelectCategory = (id) => {
+    setActiveCatId(id);
+    setMobileNavOpen(false);
+    if (typeof window !== 'undefined') {
+      const el = document.getElementById('product-grid');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
+  const handleOpenProduct = (product) => {
+    setSelectedProduct(product);
+    setDrawerOpen(true);
+  };
+  const handleCloseDrawer = () => setDrawerOpen(false);
+
+  const restaurantName =
+    (settings && (settings.restaurant_name || settings.name)) || 'Sharq Gavhari';
+  const isSearching = q.trim().length > 0;
+  const sectionEyebrow = isSearching
+    ? t('menu.filteredTitle')
+    : t('menu.selectedCategory');
+  const sectionTitle = activeCategory
+    ? getLocalizedField(activeCategory, 'name', lang)
+    : t('menu.allProducts');
+  const sectionCount = filteredProducts.length;
+
   return (
-    <div className="min-h-screen pb-32">
-      {/* Mobile/tablet top bar (hidden on lg+) */}
-      <header className="lg:hidden surface-header header-safe">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className="btn-icon shrink-0"
-            aria-label={t('nav.openMenu')}
-          >
-            <Icon name="menu" size={18} className="text-white/85" />
-          </button>
-          <div className="flex-1 text-center font-display text-base gold-text truncate">
-            {restaurantName}
-          </div>
-          <AdminAccessButton />
-        </div>
-      </header>
+    <div className="min-h-screen text-white">
+      <CustomerSidebar
+        variant="fixed"
+        categories={cats}
+        productCounts={productCounts}
+        totalCount={prods.length}
+        activeCategoryId={activeCatId}
+        onSelectCategory={handleSelectCategory}
+        query={q}
+        onQueryChange={setQ}
+      />
 
-      <div className="max-w-[1400px] mx-auto lg:px-6 lg:py-6 lg:flex lg:gap-6">
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-72 shrink-0">
-          <CustomerSidebar
-            variant="fixed"
-            categories={cats}
-            productCounts={productCounts}
-            totalCount={prods.length}
-            activeCategoryId={activeCatId}
-            onSelectCategory={handleSelectCategory}
-            query={q}
-            onQueryChange={setQ}
-          />
-        </aside>
+      <button
+        type="button"
+        onClick={() => setMobileNavOpen(true)}
+        aria-label={t('nav.openMenu')}
+        className="lg:hidden fixed top-3 left-3 z-30 w-10 h-10 rounded-full bg-black/60 backdrop-blur border border-white/10 text-white flex items-center justify-center"
+      >
+        <span aria-hidden className="text-lg leading-none">\u2630</span>
+      </button>
 
-        {/* Mobile/tablet drawer */}
-        <CustomerSidebar
-          variant="drawer"
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          categories={cats}
-          productCounts={productCounts}
-          totalCount={prods.length}
-          activeCategoryId={activeCatId}
-          onSelectCategory={handleSelectCategory}
-          query={q}
-          onQueryChange={setQ}
-        />
+      <CustomerSidebar
+        variant="drawer"
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        categories={cats}
+        productCounts={productCounts}
+        totalCount={prods.length}
+        activeCategoryId={activeCatId}
+        onSelectCategory={handleSelectCategory}
+        query={q}
+        onQueryChange={setQ}
+      />
 
-        {/* Main content */}
-        <main className="flex-1 min-w-0 px-4 lg:px-0 py-5 lg:py-0 grid gap-7 md:gap-9">
+      <main className="lg:ml-[280px] xl:ml-[300px] min-h-screen">
+        <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-10">
+          <motion.section initial={heroFade.initial} animate={heroFade.animate} transition={heroFade.transition} className="mb-7">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-gold/80">
+              {t('hero.eyebrow')}
+            </div>
+            <h1 className="mt-2 font-display text-3xl md:text-4xl lg:text-5xl gold-text">
+              {restaurantName}
+            </h1>
+            <p className="mt-2 text-white/60 text-sm md:text-base max-w-2xl">
+              {t('hero.description')}
+            </p>
+          </motion.section>
+
           {loading ? (
             <MenuSkeleton />
           ) : (
             <>
-              {/* Hero \u2014 hidden while searching to keep results immediate */}
-              {!isSearching && (
-                <motion.section
-                  {...heroFade}
-                  className="relative overflow-hidden rounded-3xl border border-white/10 shadow-soft"
-                >
-                  {heroBg ? (
-                    <div className="absolute inset-0 bg-cover bg-center scale-105" style={heroBgStyle} aria-hidden="true" />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-zinc-950 to-black" aria-hidden="true" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/65 to-black/15" aria-hidden="true" />
-                  <div className="relative z-10 p-6 md:p-10 min-h-[220px] md:min-h-[320px] flex flex-col justify-end">
-                    <div className="text-[11px] uppercase tracking-[0.32em] text-gold/85">
-                      {t('hero.eyebrow')}
-                    </div>
-                    <h1 className="font-display text-3xl md:text-5xl mt-2 leading-tight gold-text drop-shadow-[0_2px_24px_rgba(0,0,0,0.8)]">
-                      {restaurantName}
-                    </h1>
-                    <p className="text-white/85 mt-3 max-w-xl text-sm md:text-base">
-                      {t('hero.description')}
-                    </p>
-                    <div className="mt-5 flex flex-wrap items-center gap-2">
-                      <span className="pill !text-gold !border-gold/40">{t('hero.tagFresh')}</span>
-                      <span className="pill !text-gold !border-gold/40">{t('hero.tagCrafted')}</span>
-                      <span className="pill !text-gold !border-gold/40">{t('hero.tagPicked')}</span>
-                    </div>
-                  </div>
-                  <div className="pointer-events-none absolute -right-10 -top-10 w-72 h-72 rounded-full bg-gold/10 blur-3xl" />
-                </motion.section>
-              )}
-
-              {/* Top category cards \u2014 jump links to sections */}
-              {!isSearching && cats.length > 0 && (
-                <section>
-                  <div className="flex items-end justify-between mb-3 md:mb-4">
-                    <h2 className="font-display text-xl md:text-2xl gold-text">
+              {cats.length > 0 && (
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-display text-lg md:text-xl text-white/90">
                       {t('menu.categoriesTitle')}
                     </h2>
-                    <div className="divider-gold flex-1 ml-4 mb-2" />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-                    {cats.map((c) => (
-                      <CategoryCard
-                        key={c.id}
-                        category={c}
-                        onClick={() => handleSelectCategory(c.id)}
-                      />
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCategory('all')}
+                      className={
+                        'glass aspect-[5/4] flex flex-col items-center justify-center text-center p-3 rounded-2xl transition ' +
+                        (activeCatId === 'all'
+                          ? 'ring-2 ring-gold/60 bg-gold/5'
+                          : 'hover:bg-white/[0.04]')
+                      }
+                    >
+                      <span className="font-display text-base text-white">
+                        {t('menu.allProducts')}
+                      </span>
+                      <span className="mt-1 text-xs text-white/50">{prods.length}</span>
+                    </button>
+                    {cats.map((c) => {
+                      const active = activeCatId === c.id;
+                      return (
+                        <div
+                          key={c.id}
+                          className={active ? 'rounded-2xl ring-2 ring-gold/60' : ''}
+                        >
+                          <CategoryCard
+                            category={c}
+                            count={productCounts[c.id] || 0}
+                            onClick={() => handleSelectCategory(c.id)}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               )}
 
-              {/* Continuous category sections */}
-              {hasAnyResults ? (
-                visibleCats.map((c) => {
-                  const list = filteredByCategory.get(c.id) || [];
-                  const name = getLocalizedField(c, 'name', lang);
-                  const desc = getLocalizedField(c, 'description', lang);
-                  const slug = c.slug || c.id;
-                  return (
-                    <motion.section
-                      key={c.id}
-                      ref={setSectionRef(c.id)}
-                      data-cat-id={c.id}
-                      data-cat-slug={slug}
-                      id={'category-' + slug}
-                      className="scroll-mt-24 lg:scroll-mt-10"
-                      {...sectionFade}
-                    >
-                      <header className="flex items-end justify-between mb-3 md:mb-4 gap-4">
-                        <div className="min-w-0">
-                          <h2 className="font-display text-xl md:text-2xl gold-text truncate">
-                            {name}
-                          </h2>
-                          {desc && (
-                            <p className="text-white/55 text-xs md:text-sm mt-1 line-clamp-2 max-w-2xl">
-                              {desc}
-                            </p>
-                          )}
-                        </div>
-                        <div className="hidden md:flex items-center gap-3 shrink-0 mb-1">
-                          <span className="text-[11px] tabular-nums text-white/40 uppercase tracking-[0.2em]">
-                            {list.length}
-                          </span>
-                          <div className="divider-gold w-24 mb-1" />
-                        </div>
-                      </header>
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-                        {list.map((p) => <ProductCard key={p.id} product={p} />)}
-                      </div>
-                    </motion.section>
-                  );
-                })
-              ) : (
-                <EmptyState
-                  title={t('common.empty')}
-                  description={isSearching ? t('common.tryDifferent') : t('menu.noProductsInCategory')}
-                  icon="search"
-                />
-              )}
-
-              {/* Clear search shortcut */}
-              {isSearching && hasAnyResults && (
-                <div className="flex justify-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setQ('')}
-                    className="btn-ghost text-xs"
-                  >
-                    {t('common.clear')} ({totalFilteredCount})
-                  </button>
+              <section id="product-grid" className="scroll-mt-20">
+                <div className="flex items-end justify-between gap-3 mb-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-gold/70 mb-1">
+                      {sectionEyebrow}
+                    </div>
+                    <h2 className="font-display text-2xl md:text-3xl gold-text">
+                      {sectionTitle}
+                    </h2>
+                  </div>
+                  <span className="text-white/45 text-sm shrink-0">{sectionCount}</span>
                 </div>
-              )}
+
+                {filteredProducts.length === 0 ? (
+                  <EmptyState
+                    title={t('common.empty')}
+                    description={isSearching ? t('common.tryDifferent') : t('menu.noProductsInCategory')}
+                    icon="image"
+                  />
+                ) : (
+                  <motion.div
+                    initial={gridFade.initial}
+                    animate={gridFade.animate}
+                    transition={gridFade.transition}
+                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"
+                  >
+                    {filteredProducts.map((p) => (
+                      <ProductCard key={p.id} product={p} onOpen={handleOpenProduct} />
+                    ))}
+                  </motion.div>
+                )}
+              </section>
             </>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
+
+      <AdminAccessButton />
+      <ProductDetailDrawer
+        product={selectedProduct}
+        open={drawerOpen}
+        onClose={handleCloseDrawer}
+      />
     </div>
   );
 }
