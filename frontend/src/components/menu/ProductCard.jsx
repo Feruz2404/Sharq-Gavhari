@@ -90,7 +90,11 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
         </Link>
       )}
       <div className="px-4 pb-4 mt-auto flex items-center justify-between gap-2">
-        <Price value={product.price} discount={product.discount_price} />
+        <Price
+          value={product.price}
+          discount={product.discount_price}
+          secondary={product.secondary_price}
+        />
         <button
           type="button"
           onClick={handleAdd}

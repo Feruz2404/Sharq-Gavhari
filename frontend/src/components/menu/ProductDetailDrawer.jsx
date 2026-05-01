@@ -153,7 +153,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                     </span>
                     {categoryName && (
                       <>
-                        <span aria-hidden="true" className="text-white/30 text-[10px]">\u2022</span>
+                        <span aria-hidden="true" className="text-white/30 text-[10px]">•</span>
                         <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
                           {categoryName}
                         </span>
@@ -204,6 +204,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                   <Price
                     value={safeProduct.price}
                     discount={safeProduct.discount_price}
+                    secondary={safeProduct.secondary_price}
                     className="text-lg"
                   />
                   {unavailable && (
