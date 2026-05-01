@@ -23,6 +23,9 @@ const mobileExit = { y: '100%' };
 
 const panelTransition = { type: 'spring', stiffness: 320, damping: 32 };
 
+// `sizes` paired with the drawer image's srcSet (thumb 600w + full 1600w).
+const DRAWER_SIZES = '(min-width: 1024px) 480px, 100vw';
+
 const FALLBACK_GRADIENT = (
   <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/25 to-zinc-950 flex items-center justify-center">
     <span className="font-display text-6xl text-gold/40 drop-shadow-[0_2px_12px_rgba(212,175,55,0.25)]">SG</span>
@@ -129,14 +132,17 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             </button>
 
             <div className="overflow-y-auto flex-1">
-              <div className="relative aspect-[16/10] w-full overflow-hidden">
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-white/[0.02]">
                 <ImageWithFallback
                   src={safeProduct.image_url}
+                  thumbnailUrl={safeProduct.thumbnail_url}
                   alt={name}
                   fallback={FALLBACK_GRADIENT}
+                  eager
+                  sizes={DRAWER_SIZES}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent pointer-events-none" />
                 {!isDesktop && (
                   <div
                     aria-hidden="true"
@@ -153,7 +159,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                     </span>
                     {categoryName && (
                       <>
-                        <span aria-hidden="true" className="text-white/30 text-[10px]">\u2022</span>
+                        <span aria-hidden="true" className="text-white/30 text-[10px]">•</span>
                         <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
                           {categoryName}
                         </span>

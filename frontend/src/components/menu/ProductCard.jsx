@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ImageWithFallback from '../common/ImageWithFallback.jsx';
@@ -11,13 +12,18 @@ import { useT } from '../../locales/useT.js';
 const hover = { y: -4 };
 const cardTransition = { type: 'spring', stiffness: 320, damping: 24 };
 
+// `sizes` for the responsive thumbnail. Mirrors the grid: 2 cols on phones,
+// 3 cols on md, 4 cols on xl. Lets the browser download the smaller asset
+// on smaller viewports.
+const CARD_SIZES = '(min-width: 1280px) 22vw, (min-width: 768px) 32vw, 48vw';
+
 const FALLBACK_GRADIENT = (
   <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/25 to-zinc-950 flex items-center justify-center">
     <span className="font-display text-3xl text-gold/40">SG</span>
   </div>
 );
 
-export default function ProductCard({ product, basePath = '/product', onOpen }) {
+function ProductCardImpl({ product, basePath = '/product', onOpen }) {
   const lang = useLanguageStore((s) => s.language);
   const t = useT();
   const addItem = useCartStore((s) => s.addItem);
@@ -41,14 +47,16 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
 
   const body = (
     <>
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.02]">
         <ImageWithFallback
           src={product.image_url}
+          thumbnailUrl={product.thumbnail_url}
           alt={name}
           fallback={FALLBACK_GRADIENT}
+          sizes={CARD_SIZES}
           className="w-full h-full object-cover transition duration-700 group-hover:scale-[1.06]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
         {unavailable && (
           <span className="absolute top-2.5 left-2.5 text-[10px] font-medium uppercase tracking-[0.18em] bg-black/65 backdrop-blur-sm text-white/85 border border-white/10 px-2 py-1 rounded-md">
             {t('common.unavailable')}
@@ -73,17 +81,6 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
     </>
   );
 
-  // Footer layout strategy:
-  //   * Single-price items keep the inline "price | button" row that lines up
-  //     beautifully across the grid.
-  //   * Dual-price items always stack \u2014 price on top, full-width button
-  //     below \u2014 because at the narrowest grid widths (iPad portrait,
-  //     RU language) two long currency strings + a button never fit on one
-  //     row. Stacking guarantees the button can never be clipped and gives
-  //     dual-price products a stronger, more tappable call to action.
-  //   * Both layouts use `min-w-0` on the price container and `shrink-0`
-  //     `whitespace-nowrap` on the button so flex can never push the button
-  //     past the card edge.
   const footerClass = hasDualPrice
     ? 'px-4 pb-4 mt-auto flex flex-col gap-2.5'
     : 'px-4 pb-4 mt-auto flex items-center justify-between gap-2.5';
@@ -96,7 +93,7 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
     <motion.div
       whileHover={hover}
       transition={cardTransition}
-      className="group glass overflow-hidden flex flex-col ring-1 ring-transparent hover:ring-gold/25 hover:shadow-[0_22px_50px_-22px_rgba(212,175,55,0.45)] transition-shadow"
+      className="group glass overflow-hidden flex flex-col ring-1 ring-transparent hover:ring-gold/25 hover:shadow-[0_22px_50px_-22px_rgba(212,175,55,0.45)] transition-shadow content-visibility-auto"
     >
       {onOpen ? (
         <button
@@ -134,3 +131,17 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
     </motion.div>
   );
 }
+
+// Memoize the card body so a re-render of MenuPage (e.g. when the user types
+// in the search box) does not re-render every product card whose props are
+// unchanged. Comparison is shallow, which is correct because `product` is a
+// stable reference inside `prods` until the API list changes.
+function areEqual(prev, next) {
+  return (
+    prev.product === next.product &&
+    prev.basePath === next.basePath &&
+    prev.onOpen === next.onOpen
+  );
+}
+
+export default memo(ProductCardImpl, areEqual);

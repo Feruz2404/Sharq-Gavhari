@@ -1,10 +1,30 @@
 const { supabase } = require('../config/supabase');
 
+// Public read endpoints set short, conservative cache headers so Vercel /
+// browser caches can absorb repeat requests during a session without
+// stale data getting stuck for long. Admin write endpoints stay uncached.
+const PUBLIC_CACHE = 'public, max-age=60, stale-while-revalidate=300';
+
+// Public-safe column projection. Keeps payload small and prevents future
+// internal columns from leaking through `select("*")`.
+const PUBLIC_COLUMNS = [
+  'id', 'category_id',
+  'name_uz', 'name_ru', 'name_en',
+  'description_uz', 'description_ru', 'description_en',
+  'ingredients_uz', 'ingredients_ru', 'ingredients_en',
+  'price', 'secondary_price', 'discount_price',
+  'image_url', 'thumbnail_url',
+  'weight', 'preparation_time',
+  'is_active', 'is_available', 'sort_order',
+  'updated_at',
+].join(', ');
+
 exports.list = async (_req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from('products').select('*').order('updated_at', { ascending: false });
+      .from('products').select(PUBLIC_COLUMNS).order('updated_at', { ascending: false });
     if (error) throw error;
+    res.set('Cache-Control', PUBLIC_CACHE);
     res.json(data);
   } catch (e) { next(e); }
 };
@@ -13,8 +33,9 @@ exports.byCategory = async (req, res, next) => {
   try {
     const { categoryId } = req.params;
     const { data, error } = await supabase
-      .from('products').select('*').eq('category_id', categoryId).order('updated_at', { ascending: false });
+      .from('products').select(PUBLIC_COLUMNS).eq('category_id', categoryId).order('updated_at', { ascending: false });
     if (error) throw error;
+    res.set('Cache-Control', PUBLIC_CACHE);
     res.json(data);
   } catch (e) { next(e); }
 };
@@ -24,6 +45,7 @@ exports.getOne = async (req, res, next) => {
     const { data, error } = await supabase.from('products').select('*').eq('id', req.params.id).maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: 'Product not found' });
+    res.set('Cache-Control', PUBLIC_CACHE);
     res.json(data);
   } catch (e) { next(e); }
 };

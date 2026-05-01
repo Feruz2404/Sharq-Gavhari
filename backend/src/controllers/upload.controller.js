@@ -1,5 +1,7 @@
 const { supabase } = require('../config/supabase');
 const crypto = require('crypto');
+let sharp = null;
+try { sharp = require('sharp'); } catch (_) { /* sharp optional; thumbnails skipped if unavailable */ }
 
 // Buckets the API will accept and (if missing) auto-create.
 const ALLOWED_BUCKETS = new Set([
@@ -15,6 +17,17 @@ const ALLOWED_BUCKETS = new Set([
 // write outside the storage paths the app cares about. Files uploaded with
 // no folder are written at the bucket root, which is the historical layout.
 const SAFE_FOLDERS = new Set(['', 'global', 'hero', 'cover']);
+
+// Per-bucket target widths for the auto-generated WebP thumbnail. Chosen so
+// the menu cards / global background never download the full original.
+const THUMB_WIDTHS = {
+  'product-images': 600,
+  'category-images': 600,
+  'backgrounds': 1280,
+  'restaurant-assets': 600,
+  'logos': 256,
+};
+const THUMB_QUALITY = 80;
 
 const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB || 15);
 
@@ -41,8 +54,6 @@ function safeFolder(input) {
   return v;
 }
 
-// Best-effort: make sure the bucket exists. If we lack permission to
-// list/create buckets we surface a clear, actionable error.
 async function ensureBucket(bucket) {
   if (ensuredBuckets.has(bucket)) return { ok: true };
   try {
@@ -67,6 +78,32 @@ async function ensureBucket(bucket) {
     return { ok: true };
   } catch (e) {
     return { ok: false, code: 'BUCKET_CREATE_FAILED', message: String((e && e.message) || e) };
+  }
+}
+
+/**
+ * Generate a small WebP thumbnail buffer for the given bucket. Returns null
+ * when sharp is not available, the bucket is not in the thumbnail map, the
+ * source is already smaller than the target width, or any sharp step fails.
+ * Failures must NEVER block the original upload \u2014 we always fall back
+ * to using the original image as the thumbnail URL too.
+ */
+async function maybeGenerateThumbnail(bucket, buffer) {
+  if (!sharp) return null;
+  const targetWidth = THUMB_WIDTHS[bucket];
+  if (!targetWidth) return null;
+  try {
+    const meta = await sharp(buffer).metadata();
+    if (!meta || !meta.width || meta.width <= targetWidth) return null;
+    const out = await sharp(buffer)
+      .rotate() // honor EXIF orientation
+      .resize({ width: targetWidth, withoutEnlargement: true })
+      .webp({ quality: THUMB_QUALITY })
+      .toBuffer();
+    return out;
+  } catch (e) {
+    console.warn('[upload] thumbnail generation failed:', (e && e.message) || e);
+    return null;
   }
 }
 
@@ -118,11 +155,33 @@ exports.uploadFile = async (req, res, next) => {
     }
 
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    // Return both `image_url` (existing key the ImageUpload component reads)
-    // and `url` (new spec-aligned alias for global-background uploads).
+    const fullUrl = data.publicUrl;
+
+    // Generate + upload optimized thumbnail. If anything fails we silently
+    // fall back to the original URL so the admin upload UX is never blocked.
+    let thumbnail_url = fullUrl;
+    let thumbnail_path = path;
+    const thumbBuf = await maybeGenerateThumbnail(bucket, req.file.buffer);
+    if (thumbBuf) {
+      const thumbPath = path.replace(/\.[^.]+$/, '') + '.thumb.webp';
+      const { error: tErr } = await supabase.storage.from(bucket).upload(thumbPath, thumbBuf, {
+        contentType: 'image/webp',
+        upsert: true,
+      });
+      if (!tErr) {
+        const { data: tData } = supabase.storage.from(bucket).getPublicUrl(thumbPath);
+        thumbnail_url = tData.publicUrl;
+        thumbnail_path = thumbPath;
+      } else {
+        console.warn('[upload] thumbnail upload failed:', tErr.message);
+      }
+    }
+
     res.status(201).json({
-      image_url: data.publicUrl,
-      url: data.publicUrl,
+      image_url: fullUrl,
+      url: fullUrl,
+      thumbnail_url,
+      thumbnail_path,
       bucket,
       path,
     });

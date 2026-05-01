@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ImageWithFallback from '../common/ImageWithFallback.jsx';
@@ -7,6 +8,8 @@ import { useLanguageStore } from '../../stores/languageStore.js';
 const hover = { y: -4, scale: 1.012 };
 const tap   = { scale: 0.97 };
 const cardTransition = { type: 'spring', stiffness: 320, damping: 22 };
+
+const CARD_SIZES = '(min-width: 1280px) 18vw, (min-width: 768px) 28vw, 48vw';
 
 // Deterministic gradient fallback when a category has no image.
 const GRADIENTS = [
@@ -22,7 +25,7 @@ function pickGradient(key) {
   return GRADIENTS[Math.abs(h) % GRADIENTS.length];
 }
 
-export default function CategoryCard({ category, basePath = '/category', onClick, count }) {
+function CategoryCardImpl({ category, basePath = '/category', onClick, count }) {
   const lang = useLanguageStore((s) => s.language);
   const slug = category.slug || category.id;
   const name = getLocalizedField(category, 'name', lang);
@@ -47,11 +50,13 @@ export default function CategoryCard({ category, basePath = '/category', onClick
     <div className="relative aspect-[4/3] overflow-hidden">
       <ImageWithFallback
         src={category.image_url}
+        thumbnailUrl={category.thumbnail_url}
         alt={name}
         fallback={fallback}
+        sizes={CARD_SIZES}
         className="w-full h-full object-cover transition duration-700 group-hover:scale-[1.07]"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/35 to-black/5" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/35 to-black/5 pointer-events-none" />
       {showCount && (
         <span className="absolute top-2.5 right-2.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium tabular-nums bg-black/55 backdrop-blur-sm border border-white/10 text-white/80">
           {count}
@@ -80,3 +85,14 @@ export default function CategoryCard({ category, basePath = '/category', onClick
     </motion.div>
   );
 }
+
+function areEqual(prev, next) {
+  return (
+    prev.category === next.category &&
+    prev.basePath === next.basePath &&
+    prev.onClick === next.onClick &&
+    prev.count === next.count
+  );
+}
+
+export default memo(CategoryCardImpl, areEqual);
