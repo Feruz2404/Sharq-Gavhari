@@ -28,6 +28,10 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
     product.discount_price &&
     Number(product.discount_price) > 0 &&
     Number(product.discount_price) < Number(product.price);
+  const hasDualPrice =
+    product.secondary_price != null &&
+    Number(product.secondary_price) > 0 &&
+    Number(product.secondary_price) !== Number(product.price);
 
   const handleAdd = (e) => {
     e.stopPropagation();
@@ -57,7 +61,7 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
         )}
       </div>
       <div className="px-4 pt-3.5 pb-2">
-        <h3 className="font-display text-[15px] md:text-base text-white leading-tight truncate">
+        <h3 className="font-display text-[15px] md:text-base text-white leading-tight line-clamp-1">
           {name}
         </h3>
         {desc ? (
@@ -68,6 +72,25 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
       </div>
     </>
   );
+
+  // Footer layout strategy:
+  //   * Single-price items keep the inline "price | button" row that lines up
+  //     beautifully across the grid.
+  //   * Dual-price items always stack \u2014 price on top, full-width button
+  //     below \u2014 because at the narrowest grid widths (iPad portrait,
+  //     RU language) two long currency strings + a button never fit on one
+  //     row. Stacking guarantees the button can never be clipped and gives
+  //     dual-price products a stronger, more tappable call to action.
+  //   * Both layouts use `min-w-0` on the price container and `shrink-0`
+  //     `whitespace-nowrap` on the button so flex can never push the button
+  //     past the card edge.
+  const footerClass = hasDualPrice
+    ? 'px-4 pb-4 mt-auto flex flex-col gap-2.5'
+    : 'px-4 pb-4 mt-auto flex items-center justify-between gap-2.5';
+  const priceWrapClass = hasDualPrice ? 'min-w-0' : 'min-w-0 flex-1';
+  const buttonClass = hasDualPrice
+    ? 'btn-gold !py-2 !px-3 text-[13px] !rounded-lg w-full justify-center shrink-0 whitespace-nowrap'
+    : 'btn-gold !py-1.5 !px-3 text-[13px] !rounded-lg shrink-0 whitespace-nowrap';
 
   return (
     <motion.div
@@ -89,18 +112,20 @@ export default function ProductCard({ product, basePath = '/product', onOpen }) 
           {body}
         </Link>
       )}
-      <div className="px-4 pb-4 mt-auto flex items-center justify-between gap-2">
-        <Price
-          value={product.price}
-          discount={product.discount_price}
-          secondary={product.secondary_price}
-        />
+      <div className={footerClass}>
+        <div className={priceWrapClass}>
+          <Price
+            value={product.price}
+            discount={product.discount_price}
+            secondary={product.secondary_price}
+          />
+        </div>
         <button
           type="button"
           onClick={handleAdd}
           disabled={unavailable}
           aria-label={t('common.addToCart') || t('common.add')}
-          className="btn-gold !py-1.5 !px-3 text-[13px] !rounded-lg"
+          className={buttonClass}
         >
           <Icon name="plus" size={14} />
           <span>{t('common.add')}</span>

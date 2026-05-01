@@ -153,7 +153,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                     </span>
                     {categoryName && (
                       <>
-                        <span aria-hidden="true" className="text-white/30 text-[10px]">•</span>
+                        <span aria-hidden="true" className="text-white/30 text-[10px]">\u2022</span>
                         <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
                           {categoryName}
                         </span>
@@ -200,15 +200,17 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-1">
-                  <Price
-                    value={safeProduct.price}
-                    discount={safeProduct.discount_price}
-                    secondary={safeProduct.secondary_price}
-                    className="text-lg"
-                  />
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <div className="min-w-0 flex-1">
+                    <Price
+                      value={safeProduct.price}
+                      discount={safeProduct.discount_price}
+                      secondary={safeProduct.secondary_price}
+                      className="text-lg"
+                    />
+                  </div>
                   {unavailable && (
-                    <span className="text-[10.5px] uppercase tracking-[0.2em] bg-zinc-800/80 ring-1 ring-white/15 text-white/85 px-2 py-1 rounded-md">
+                    <span className="shrink-0 text-[10.5px] uppercase tracking-[0.2em] bg-zinc-800/80 ring-1 ring-white/15 text-white/85 px-2 py-1 rounded-md">
                       {t('common.unavailable')}
                     </span>
                   )}
@@ -217,7 +219,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             </div>
 
             <div className="border-t border-white/10 p-4 md:p-5 flex items-center gap-3 bg-black/40">
-              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04]">
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] shrink-0">
                 <button
                   type="button"
                   onClick={() => setQty((v) => Math.max(1, v - 1))}
@@ -241,10 +243,10 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                 type="button"
                 onClick={handleAdd}
                 disabled={unavailable}
-                className="btn-gold flex-1 justify-center"
+                className="btn-gold flex-1 justify-center whitespace-nowrap min-w-0"
               >
                 <Icon name="plus" size={16} />
-                <span>{t('common.addToCart')}</span>
+                <span className="truncate">{t('common.addToCart')}</span>
               </button>
             </div>
           </motion.div>
