@@ -24,6 +24,16 @@ function friendlyError(err) {
  *
  * Props (all optional except value/onChange):
  *  - value, onChange   : current image URL and setter (string)
+ *  - onUpload          : OPTIONAL richer callback fired with the full upload
+ *                        response `{ image_url, thumbnail_url, url, bucket,
+ *                        path, thumbnail_path }` after a successful upload,
+ *                        and with an empty-fields object on remove. Lets the
+ *                        parent persist `thumbnail_url` alongside `image_url`
+ *                        without changing the simple `onChange(url)` contract
+ *                        used by other consumers (settings logo, hero, etc.).
+ *  - thumbnailUrl      : optional optimized URL preferred for the live preview
+ *                        \u2014 falls back to `value` (full image_url) when
+ *                        absent so old admin rows still render.
  *  - bucket            : storage bucket key (default: 'logos')
  *  - folder            : optional storage sub-folder (e.g. 'global', 'hero')
  *  - label             : section label rendered above the dropzone
@@ -36,7 +46,9 @@ function friendlyError(err) {
  */
 export default function ImageUpload({
   value,
+  thumbnailUrl,
   onChange,
+  onUpload,
   bucket = 'logos',
   folder,
   label = 'Image',
@@ -61,9 +73,12 @@ export default function ImageUpload({
     setBusy(true); setErr('');
     try {
       const res = await uploadService.upload(file, bucket, folder);
-      // Backend returns both `image_url` (legacy) and `url` (new). Prefer
-      // `image_url` for back-compat with prior frontend versions.
-      onChange(res.image_url || res.url);
+      // Prefer richer payload via `onUpload` so the parent can persist both
+      // `image_url` and `thumbnail_url`. Always also call `onChange(url)` so
+      // simple consumers (settings, etc.) keep working unchanged.
+      const fullUrl = res.image_url || res.url || '';
+      if (onUpload) onUpload(res);
+      onChange(fullUrl);
       toast.success((label || 'Image') + ' uploaded');
     } catch (x) {
       const msg = friendlyError(x);
@@ -80,6 +95,13 @@ export default function ImageUpload({
   };
   const openPicker = () => inputRef.current && inputRef.current.click();
 
+  const handleRemove = () => {
+    onChange('');
+    // Also clear thumbnail_url and friends in the parent payload, if it
+    // wired up the richer callback.
+    if (onUpload) onUpload({ image_url: '', thumbnail_url: '', url: '' });
+  };
+
   const dropzoneCls =
     'flex items-center gap-3 rounded-2xl border border-dashed p-3 transition ' +
     (drag ? 'border-gold/60 bg-gold/5' : 'border-white/15 bg-white/[0.03] hover:border-white/25');
@@ -92,6 +114,11 @@ export default function ImageUpload({
 
   const fallbackPlaceholder =
     'Drop an image, or click to browse (jpg, png, webp \u00B7 high quality supported)';
+
+  // Preview prefers the optimized thumbnail when the parent supplies one;
+  // otherwise the full image is used (back-compat with rows that have no
+  // `thumbnail_url` yet).
+  const previewSrc = thumbnailUrl || value;
 
   return (
     <div className="grid gap-2">
@@ -110,7 +137,7 @@ export default function ImageUpload({
           style={thumbStyle}
           aria-label={value ? changeLabel : uploadLabel}
         >
-          <ImageWithFallback src={value} className="w-full h-full object-cover" />
+          <ImageWithFallback src={previewSrc} className="w-full h-full object-cover" />
           {!value && (
             <span className="absolute inset-0 grid place-items-center text-white/40 group-hover:text-gold transition">
               <Icon name="upload" size={20} />
@@ -136,7 +163,7 @@ export default function ImageUpload({
                 type="button"
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-white/10 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition disabled:opacity-50"
-                onClick={() => onChange('')}
+                onClick={handleRemove}
               >
                 <Icon name="trash" size={14} /> {removeLabel}
               </button>

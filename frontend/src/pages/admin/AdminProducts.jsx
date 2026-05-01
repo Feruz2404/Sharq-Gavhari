@@ -39,9 +39,21 @@ export default function AdminProducts() {
   };
 
   const cols = [
-    { key: 'image', label: '', render: (r) => <ImageWithFallback src={r.image_url} className="w-10 h-10 rounded-md object-cover" /> },
+    {
+      key: 'image',
+      label: '',
+      // Admin row preview prefers the optimized thumbnail so the table stays
+      // snappy even when the source images are 4K originals.
+      render: (r) => (
+        <ImageWithFallback
+          src={r.image_url}
+          thumbnailUrl={r.thumbnail_url}
+          className="w-10 h-10 rounded-md object-cover"
+        />
+      ),
+    },
     { key: 'name_uz', label: 'Name (UZ)' },
-    { key: 'category', label: t('admin.categories'), render: (r) => cats.find((c) => c.id === r.category_id)?.name_uz || '—' },
+    { key: 'category', label: t('admin.categories'), render: (r) => cats.find((c) => c.id === r.category_id)?.name_uz || '\u2014' },
     { key: 'price', label: t('admin.price'), render: (r) => formatPrice(r.discount_price ?? r.price) },
     { key: 'is_available', label: t('admin.isAvailable'), render: (r) => (
       <ToggleSwitch checked={r.is_available} onChange={async (v) => { await productService.setAvailability(r.id, v); reload(); }} />

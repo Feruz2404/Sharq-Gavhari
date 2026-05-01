@@ -35,12 +35,24 @@ export default function AdminCategories() {
   };
 
   const cols = [
-    { key: 'image', label: '', render: (r) => <ImageWithFallback src={r.image_url} className="w-10 h-10 rounded-md object-cover" /> },
+    {
+      key: 'image',
+      label: '',
+      // Use the optimized thumbnail when available so the admin grid stays
+      // light \u2014 falls back to image_url for legacy rows.
+      render: (r) => (
+        <ImageWithFallback
+          src={r.image_url}
+          thumbnailUrl={r.thumbnail_url}
+          className="w-10 h-10 rounded-md object-cover"
+        />
+      ),
+    },
     { key: 'name_uz', label: 'Name (UZ)' },
     { key: 'name_ru', label: 'Name (RU)' },
     { key: 'slug', label: 'Slug' },
     { key: 'sort_order', label: t('admin.sortOrder') },
-    { key: 'is_active', label: t('admin.isActive'), render: (r) => r.is_active ? '✓' : '—' },
+    { key: 'is_active', label: t('admin.isActive'), render: (r) => r.is_active ? '\u2713' : '\u2014' },
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-2 justify-end">
         <button onClick={() => { setEditing(r); setCreating(false); }} className="btn-ghost !py-1 !px-2 text-xs">{t('common.edit')}</button>

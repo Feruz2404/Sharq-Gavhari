@@ -3,15 +3,27 @@ import ImageUpload from './ImageUpload.jsx';
 import ToggleSwitch from './ToggleSwitch.jsx';
 import Select from './Select.jsx';
 import { useT } from '../../locales/useT.js';
+import { useLanguageStore } from '../../stores/languageStore.js';
+
+// Localized helper text shown under the upload dropzone. Keeps wording in
+// sync across UZ/RU/EN and explains the auto-thumbnail pipeline so admins
+// know it's safe to upload high-quality originals.
+const UPLOAD_HINT = {
+  uz: 'Yuqori sifatli rasm yuklash mumkin. Tez yuklanishi uchun tizim menyu kartalari uchun kichik WebP versiyani avtomatik ishlatadi.',
+  ru: '\u041C\u043E\u0436\u043D\u043E \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u0432\u044B\u0441\u043E\u043A\u043E\u0433\u043E \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0430. \u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u043D\u0443\u044E WebP-\u0432\u0435\u0440\u0441\u0438\u044E \u0434\u043B\u044F \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A \u043C\u0435\u043D\u044E.',
+  en: 'High-quality images are supported. The system automatically uses a smaller WebP version for menu cards.',
+};
 
 export default function ProductForm({ initial = {}, categories = [], onSubmit, onCancel, submitting }) {
   const t = useT();
+  const lang = useLanguageStore((s) => s.language);
   const [f, setF] = useState({
     category_id: '',
     name_uz: '', name_ru: '', name_en: '',
     description_uz: '', description_ru: '', description_en: '',
     ingredients_uz: '', ingredients_ru: '', ingredients_en: '',
-    image_url: '', price: 0, discount_price: null,
+    image_url: '', thumbnail_url: '',
+    price: 0, discount_price: null, secondary_price: null,
     weight: '', preparation_time: '',
     is_available: true, is_active: true,
     ...initial,
@@ -21,9 +33,23 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
   const set = (k) => (e) =>
     setF((prev) => ({ ...prev, [k]: e && e.target ? e.target.value : e }));
 
+  // When ImageUpload finishes (or remove is clicked) it fires `onUpload`
+  // with the richer `{ image_url, thumbnail_url, url }` payload. We persist
+  // both columns; if the backend couldn't generate a thumb (sharp missing,
+  // tiny source, etc.) it returns `thumbnail_url = image_url` so the field
+  // is always populated.
+  const handleUpload = (res) => {
+    setF((prev) => ({
+      ...prev,
+      image_url: res.image_url || res.url || '',
+      thumbnail_url:
+        res.thumbnail_url || res.image_url || res.url || '',
+    }));
+  };
+
   const categoryOptions = categories.map((c) => ({
     value: c.id,
-    label: c.name_uz || c.name_en || c.slug || '—',
+    label: c.name_uz || c.name_en || c.slug || '\u2014',
     sublabel: c.slug || '',
     image_url: c.image_url,
   }));
@@ -36,11 +62,22 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
     if (!f.category_id) return;
     onSubmit({
       ...f,
+      // Defensive: if image_url is set but thumbnail_url somehow isn't (e.g.
+      // legacy row being edited without re-uploading), mirror image_url so
+      // the menu cards still get a sensible value.
+      thumbnail_url:
+        f.thumbnail_url ||
+        (f.image_url ? f.image_url : '') ||
+        null,
       price: Number(f.price || 0),
       discount_price:
         f.discount_price === '' || f.discount_price == null
           ? null
           : Number(f.discount_price),
+      secondary_price:
+        f.secondary_price === '' || f.secondary_price == null
+          ? null
+          : Number(f.secondary_price),
     });
   };
 
@@ -61,7 +98,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
                 value={f.category_id || ''}
                 onChange={(v) => set('category_id')(v)}
                 options={categoryOptions}
-                placeholder="—"
+                placeholder="\u2014"
                 invalid={categoryInvalid}
               />
             )}
@@ -75,9 +112,12 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
             <label className="label">{t('admin.image')}</label>
             <ImageUpload
               value={f.image_url}
+              thumbnailUrl={f.thumbnail_url}
               onChange={(v) => set('image_url')(v)}
+              onUpload={handleUpload}
               bucket="product-images"
               label=""
+              helperText={UPLOAD_HINT[lang] || UPLOAD_HINT.en}
             />
           </div>
         </div>
@@ -133,7 +173,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         <div className="flex gap-2 ml-auto">
           <button type="button" onClick={onCancel} className="btn-ghost">{t('common.cancel')}</button>
           <button type="submit" disabled={submitting || noCategories} className="btn-gold">
-            {submitting ? '…' : t('common.save')}
+            {submitting ? '\u2026' : t('common.save')}
           </button>
         </div>
       </section>
