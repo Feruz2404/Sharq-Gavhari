@@ -1,0 +1,157 @@
+// Bar menu data \u2014 non-alcoholic categories (1\u201310).
+//
+// Russian names are canonical (per the spec). Uzbek/English are clean local
+// translations. For brand product names (Cola, Fanta, Heineken, etc.) the
+// brand is preserved identically across all three locales.
+//
+// Sort orders 1000\u20131009 keep the bar block under the existing food menu.
+
+module.exports = [
+  {
+    slug: 'bar-milkshakes',
+    sort_order: 1000,
+    name_ru: '\u041C\u043E\u043B\u043E\u0447\u043D\u044B\u0435 \u043A\u043E\u043A\u0442\u0435\u0439\u043B\u0438',
+    name_uz: 'Sutli kokteyllar',
+    name_en: 'Milkshakes',
+    items: [
+      { name_ru: '\u0411\u0430\u043D\u0430\u043D\u043E\u0432\u044B\u0439',  name_uz: 'Banan',      name_en: 'Banana',     price: 60000 },
+      { name_ru: '\u041A\u043B\u0443\u0431\u043D\u0438\u0447\u043D\u044B\u0439', name_uz: 'Qulupnay',   name_en: 'Strawberry', price: 60000 },
+      { name_ru: '\u0428\u043E\u043A\u043E\u043B\u0430\u0434\u043D\u044B\u0439', name_uz: 'Shokoladli', name_en: 'Chocolate',  price: 60000 },
+      { name_ru: '\u041C\u043E\u043B\u043E\u0447\u043D\u044B\u0439',   name_uz: 'Sutli',     name_en: 'Milk',       price: 60000 },
+    ],
+  },
+  {
+    slug: 'bar-non-alcoholic-cocktails',
+    sort_order: 1001,
+    name_ru: '\u0411\u0435\u0437\u0430\u043B\u043A\u043E\u0433\u043E\u043B\u044C\u043D\u044B\u0435 \u043A\u043E\u043A\u0442\u0435\u0439\u043B\u0438',
+    name_uz: 'Alkogolsiz kokteyllar',
+    name_en: 'Non-Alcoholic Cocktails',
+    items: [
+      { name_ru: '\u041C\u043E\u0445\u0438\u0442\u043E',      name_uz: 'Mohito',      name_en: 'Mojito',      price: 25000 },
+      { name_ru: '\u041F\u0438\u043D\u0430 \u043A\u043E\u043B\u0430\u0434\u0430', name_uz: 'Pina kolada', name_en: 'Pina Colada', price: 50000 },
+    ],
+  },
+  {
+    slug: 'bar-fresh-juices',
+    sort_order: 1002,
+    name_ru: '\u0421\u0432\u0435\u0436\u0435\u0432\u044B\u0436\u0430\u0442\u044B\u0435 \u0441\u043E\u043A\u0438',
+    name_uz: 'Yangi siqilgan sharbatlar',
+    name_en: 'Fresh Juices',
+    items: [
+      { name_ru: '\u042F\u0431\u043B\u043E\u043A\u043E',           name_uz: 'Olma',        name_en: 'Apple',        price: 30000 },
+      { name_ru: '\u041C\u043E\u0440\u043A\u043E\u0432\u044C',     name_uz: 'Sabzi',       name_en: 'Carrot',       price: 25000 },
+      { name_ru: '\u0410\u043F\u0435\u043B\u044C\u0441\u0438\u043D', name_uz: 'Apelsin',     name_en: 'Orange',       price: 50000 },
+      { name_ru: '\u042F\u0431\u043B\u043E\u043A\u043E \u043C\u043E\u0440\u043A\u043E\u0432\u044C', name_uz: 'Olma-sabzi', name_en: 'Apple-Carrot', price: 35000 },
+    ],
+  },
+  {
+    slug: 'bar-soft-drinks',
+    sort_order: 1003,
+    name_ru: '\u041F\u0440\u043E\u0445\u043B\u0430\u0434\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u043D\u0430\u043F\u0438\u0442\u043A\u0438',
+    name_uz: 'Salqin ichimliklar',
+    name_en: 'Soft Drinks',
+    items: [
+      { name_ru: 'Cola 1L',         name_uz: 'Cola 1L',         name_en: 'Cola 1L',         price: 20000 },
+      { name_ru: 'Fanta 1L',        name_uz: 'Fanta 1L',        name_en: 'Fanta 1L',        price: 20000 },
+      { name_ru: 'Sprite 1.5L',     name_uz: 'Sprite 1.5L',     name_en: 'Sprite 1.5L',     price: 25000 },
+      { name_ru: 'Bonaqua 1.5L',    name_uz: 'Bonaqua 1.5L',    name_en: 'Bonaqua 1.5L',    price: 15000 },
+      { name_ru: 'Chortoq 0.5L',    name_uz: 'Chortoq 0.5L',    name_en: 'Chortoq 0.5L',    price: 20000 },
+      { name_ru: 'Borjomi 0.5L',    name_uz: 'Borjomi 0.5L',    name_en: 'Borjomi 0.5L',    price: 30000 },
+      { name_ru: '\u0421\u043E\u043A \u0432 \u0430\u0441\u0441\u043E\u0440\u0442\u0438\u043C\u0435\u043D\u0442\u0435', name_uz: 'Tanlovga ko\u02BBra sharbat', name_en: 'Assorted Juice', price: 27000 },
+      { name_ru: 'Cola ban/but',    name_uz: 'Cola ban/but',    name_en: 'Cola can/btl',    price: 15000 },
+      { name_ru: 'Fanta ban/but',   name_uz: 'Fanta ban/but',   name_en: 'Fanta can/btl',   price: 15000 },
+    ],
+  },
+  {
+    slug: 'bar-beer-snacks',
+    sort_order: 1004,
+    name_ru: '\u0417\u0430\u043A\u0443\u0441\u043A\u0438 \u043A \u043F\u0438\u0432\u0443',
+    name_uz: 'Pivoga gazaklar',
+    name_en: 'Beer Snacks',
+    items: [
+      { name_ru: '\u041A\u0443\u0440\u0442',         name_uz: 'Qurt',      name_en: 'Kurt',         price: 10000 },
+      { name_ru: '\u041C\u0438\u043D\u0434\u0430\u043B\u044C', name_uz: 'Bodom',     name_en: 'Almonds',      price: 25000 },
+      { name_ru: '\u0424\u0438\u0441\u0442\u0430\u0448\u043A\u0438', name_uz: 'Pista',     name_en: 'Pistachios',   price: 28000 },
+      { name_ru: '\u0427\u0438\u043F\u0441\u044B',      name_uz: 'Chipsi',    name_en: 'Chips',        price: 25000 },
+      { name_ru: '\u0421\u0443\u043B\u0443\u0433\u0443\u043D\u0438', name_uz: 'Suluguni',  name_en: 'Suluguni',     price: 25000 },
+      { name_ru: '\u041F\u0438\u0432\u043D\u043E\u0435 \u0430\u0441\u0441\u043E\u0440\u0442\u0438', name_uz: 'Pivo assorti', name_en: 'Beer Platter', price: 120000 },
+    ],
+  },
+  {
+    slug: 'bar-beer',
+    sort_order: 1005,
+    name_ru: '\u041F\u0438\u0432\u043E',
+    name_uz: 'Pivo',
+    name_en: 'Beer',
+    items: [
+      { name_ru: 'Heineken',     name_uz: 'Heineken',     name_en: 'Heineken',     price: 50000 },
+      { name_ru: 'Corona extra', name_uz: 'Corona extra', name_en: 'Corona Extra', price: 70000 },
+      { name_ru: '\u0428\u044B\u043C\u043A\u0435\u043D\u0442 \u0440\u0430\u0437\u043B\u0438\u0432\u043D\u043E\u0435', name_uz: 'Shymkent (rozliv)', name_en: 'Shymkent (draft)', price: 36000 },
+      { name_ru: '\u041F\u0448\u0435\u043D\u0438\u0447\u043D\u043E\u0435 0%',  name_uz: 'Bug\u02BBdoy 0%',     name_en: 'Wheat 0%',          price: 25000 },
+    ],
+  },
+  {
+    slug: 'bar-lemonades-iced-tea',
+    sort_order: 1006,
+    name_ru: '\u041B\u0438\u043C\u043E\u043D\u0430\u0434\u044B \u0438 \u0430\u0439\u0441-\u0442\u0438',
+    name_uz: 'Limonadlar va ays-ti',
+    name_en: 'Lemonades & Iced Tea',
+    items: [
+      { name_ru: '\u042F\u0431\u043B\u043E\u043A\u043E \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D',  name_uz: 'Olma-rozmarin',   name_en: 'Apple-Rosemary',     price: 30000, secondary_price: 80000 },
+      { name_ru: '\u041C\u0430\u043D\u0433\u043E \u043C\u0430\u0440\u0430\u043A\u0443\u044F',         name_uz: 'Mango-marakuya',  name_en: 'Mango-Passionfruit', price: 35000, secondary_price: 95000 },
+      { name_ru: '\u041A\u043B\u0443\u0431\u043D\u0438\u043A\u0430 \u0430\u043F\u0435\u043B\u044C\u0441\u0438\u043D', name_uz: 'Qulupnay-apelsin', name_en: 'Strawberry-Orange',  price: 30000, secondary_price: 80000 },
+      { name_ru: '\u042F\u0433\u043E\u0434\u043D\u044B\u0439',     name_uz: 'Rezavor',         name_en: 'Berry',              price: 30000, secondary_price: 80000 },
+      { name_ru: '\u0426\u0438\u0442\u0440\u0443\u0441\u043E\u0432\u044B\u0439', name_uz: 'Sitrus',          name_en: 'Citrus',             price: 30000, secondary_price: 80000 },
+      { name_ru: '\u0422\u0430\u0440\u0445\u0443\u043D',           name_uz: 'Tarxun',          name_en: 'Tarragon',           price: 30000, secondary_price: 80000 },
+      { name_ru: '\u041C\u043E\u0445\u0438\u0442\u043E',           name_uz: 'Mohito',          name_en: 'Mojito',             price: 25000, secondary_price: 75000 },
+      { name_ru: '\u041C\u043E\u0445\u0438\u0442\u043E \u043A\u043B\u0443\u0431\u043D\u0438\u0447\u043D\u044B\u0439', name_uz: 'Mohito qulupnay', name_en: 'Strawberry Mojito',  price: 25000, secondary_price: 75000 },
+      { name_ru: '\u0410\u0439\u0441-\u0442\u0438 \u0446\u0438\u0442\u0440\u0443\u0441\u043E\u0432\u044B\u0439', name_uz: 'Sitrus ays-ti',  name_en: 'Citrus Iced Tea',    price: 30000, secondary_price: 80000 },
+      { name_ru: '\u0410\u0439\u0441-\u0442\u0438 \u044F\u0433\u043E\u0434\u043D\u044B\u0439',          name_uz: 'Rezavor ays-ti', name_en: 'Berry Iced Tea',     price: 30000, secondary_price: 80000 },
+    ],
+  },
+  {
+    slug: 'bar-specialty-tea',
+    sort_order: 1007,
+    name_ru: '\u0410\u0432\u0442\u043E\u0440\u0441\u043A\u0438\u0435 \u0447\u0430\u0438',
+    name_uz: 'Mualliflik choylari',
+    name_en: 'Specialty Tea',
+    items: [
+      { name_ru: '\u0427\u0430\u0439 \u041C\u0430\u043D\u0433\u043E \u043C\u0430\u0440\u0430\u043A\u0443\u044F',      name_uz: 'Mango-marakuya choyi',   name_en: 'Mango-Passionfruit Tea', price: 40000 },
+      { name_ru: '\u0427\u0430\u0439 \u042F\u0433\u043E\u0434\u043D\u044B\u0439',                                  name_uz: 'Rezavor choy',           name_en: 'Berry Tea',              price: 40000 },
+      { name_ru: '\u0427\u0430\u0439 \u0410\u043F\u0435\u043B\u044C\u0441\u0438\u043D \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D', name_uz: 'Apelsin-rozmarin choy',  name_en: 'Orange-Rosemary Tea',    price: 40000 },
+      { name_ru: '\u0427\u0430\u0439 \u041C\u0430\u0440\u043E\u043A\u043A\u0430\u043D\u0441\u043A\u0438\u0439',     name_uz: 'Marokash choyi',         name_en: 'Moroccan Tea',           price: 35000 },
+      { name_ru: '\u0427\u0430\u0439 \u041E\u0431\u043B\u0435\u043F\u0438\u0445\u043E\u0432\u044B\u0439',           name_uz: 'Chakanda choyi',         name_en: 'Sea Buckthorn Tea',      price: 35000 },
+      { name_ru: '\u0427\u0430\u0439 \u0418\u043C\u0431\u0438\u0440\u043D\u044B\u0439',                              name_uz: 'Zanjabil choyi',         name_en: 'Ginger Tea',             price: 35000 },
+    ],
+  },
+  {
+    slug: 'bar-leaf-tea',
+    sort_order: 1008,
+    name_ru: '\u041B\u0438\u0441\u0442\u043E\u0432\u043E\u0439 \u0447\u0430\u0439',
+    name_uz: 'Bargli choy',
+    name_en: 'Leaf Tea',
+    items: [
+      { name_ru: '\u0427\u0430\u0439 \u0417\u0435\u043B\u0435\u043D\u044B\u0439',                                            name_uz: 'Yashil choy',         name_en: 'Green Tea',              price: 15000 },
+      { name_ru: '\u0427\u0430\u0439 \u0427\u0435\u0440\u043D\u044B\u0439',                                                  name_uz: 'Qora choy',           name_en: 'Black Tea',              price: 15000 },
+      { name_ru: '\u0427\u0430\u0439 \u0417\u0435\u043B\u0435\u043D\u044B\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u043C', name_uz: 'Limonli yashil choy', name_en: 'Green Tea with Lemon',   price: 25000 },
+      { name_ru: '\u0427\u0430\u0439 \u0427\u0435\u0440\u043D\u044B\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u043C',  name_uz: 'Limonli qora choy',   name_en: 'Black Tea with Lemon',   price: 25000 },
+    ],
+  },
+  {
+    slug: 'bar-coffee',
+    sort_order: 1009,
+    name_ru: '\u041A\u043E\u0444\u0435',
+    name_uz: 'Qahva',
+    name_en: 'Coffee',
+    items: [
+      { name_ru: '\u042D\u0441\u043F\u0440\u0435\u0441\u0441\u043E',     name_uz: 'Espresso',     name_en: 'Espresso',     price: 20000 },
+      { name_ru: '\u0410\u043C\u0435\u0440\u0438\u043A\u0430\u043D\u043E', name_uz: 'Amerikano',    name_en: 'Americano',    price: 23000 },
+      { name_ru: '\u041A\u0430\u043F\u0443\u0447\u0438\u043D\u043E',      name_uz: 'Kapuchino',    name_en: 'Cappuccino',   price: 25000 },
+      { name_ru: '\u041B\u0430\u0442\u0442\u0435',                          name_uz: 'Latte',        name_en: 'Latte',        price: 30000 },
+      { name_ru: '\u041A\u0430\u043A\u0430\u043E \u0441 \u043C\u0430\u0440\u0448\u043C\u0435\u043B\u043E', name_uz: 'Marshmellou kakao', name_en: 'Cocoa with Marshmallow', price: 30000 },
+      { name_ru: '\u0410\u0439\u0441 \u0410\u043C\u0435\u0440\u0438\u043A\u0430\u043D\u043E',           name_uz: 'Ays Amerikano', name_en: 'Iced Americano',  price: 23000 },
+      { name_ru: '\u0410\u0439\u0441 \u041A\u0430\u043F\u0443\u0447\u0438\u043D\u043E',                  name_uz: 'Ays Kapuchino', name_en: 'Iced Cappuccino', price: 25000 },
+      { name_ru: '\u0410\u0439\u0441 \u041B\u0430\u0442\u0442\u0435',                                      name_uz: 'Ays Latte',     name_en: 'Iced Latte',      price: 30000 },
+    ],
+  },
+];
