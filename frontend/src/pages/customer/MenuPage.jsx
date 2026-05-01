@@ -14,6 +14,8 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
 
+const BAR_PARENT_SLUG = 'bar';
+
 const heroFade = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
@@ -31,6 +33,10 @@ export default function MenuPage() {
   const settings = useSettingsStore((s) => s.settings);
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
+  // `cats` is the FULL flat list returned by the API (top-level + bar children).
+  // We derive top-level / bar children below \u2014 the sidebar and the
+  // category grid only ever see top-level entries, and the Bar drill-down
+  // sees only direct children of the bar parent.
   const [cats, setCats] = useState([]);
   const [prods, setProds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +45,10 @@ export default function MenuPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // 'overview' = category cards only.
-  // 'products' = continuous product sections starting at startIdx.
+  // Modes:
+  //   'overview' \u2192 top-level category cards only
+  //   'products' \u2192 continuous product sections for top-level (non-bar) cats starting at startIdx
+  //   'bar'      \u2192 nested bar view: chip rail + product sections grouped by bar sub-category
   const [mode, setMode] = useState('overview');
   const [activeCatId, setActiveCatId] = useState(null);
   const [startIdx, setStartIdx] = useState(0);
@@ -48,7 +56,6 @@ export default function MenuPage() {
   const sectionRefs = useRef({});
   const programmaticScrollUntilRef = useRef(0);
 
-  // Initial data load.
   useEffect(() => {
     let cancelled = false;
     Promise.all([categoryService.list(), productService.list()])
@@ -72,6 +79,31 @@ export default function MenuPage() {
     if (!settings) fetchSettings();
   }, [settings, fetchSettings]);
 
+  // ---- Hierarchy derivation ----------------------------------------------
+  // The Bar parent (slug='bar', parent_id=null) is identified by slug so
+  // legacy DBs without parent_id still work \u2014 we then treat any category
+  // whose parent_id matches Bar's id as a bar child. As a safety net, any
+  // bar-* slug whose parent_id is missing is also treated as a bar child so
+  // unmigrated rows still get nested instead of leaking into the top level.
+  const barCat = useMemo(
+    () => cats.find((c) => c.slug === BAR_PARENT_SLUG) || null,
+    [cats]
+  );
+  const barChildren = useMemo(() => {
+    if (!barCat) return [];
+    return cats.filter((c) => {
+      if (c.id === barCat.id) return false;
+      if (c.parent_id) return c.parent_id === barCat.id;
+      return typeof c.slug === 'string' && c.slug.startsWith('bar-');
+    });
+  }, [cats, barCat]);
+
+  const topLevelCats = useMemo(() => {
+    const childIds = new Set(barChildren.map((c) => c.id));
+    return cats.filter((c) => !childIds.has(c.id) && !c.parent_id);
+  }, [cats, barChildren]);
+
+  // ---- Product grouping & counts -----------------------------------------
   const productsByCat = useMemo(() => {
     const map = {};
     for (const p of prods) {
@@ -81,18 +113,30 @@ export default function MenuPage() {
     return map;
   }, [prods]);
 
+  // Top-level counts, with the Bar tile rolling up its children's totals so
+  // the sidebar shows e.g. "Bar 110" instead of "Bar 0".
   const productCounts = useMemo(() => {
     const counts = {};
     for (const id of Object.keys(productsByCat)) {
       counts[id] = productsByCat[id].length;
     }
+    if (barCat) {
+      let total = counts[barCat.id] || 0;
+      for (const child of barChildren) total += productsByCat[child.id] ? productsByCat[child.id].length : 0;
+      counts[barCat.id] = total;
+    }
     return counts;
-  }, [productsByCat]);
+  }, [productsByCat, barCat, barChildren]);
 
+  // ---- Section list per mode ---------------------------------------------
   const visibleCats = useMemo(() => {
-    if (mode !== 'products') return [];
-    return cats.slice(startIdx);
-  }, [cats, startIdx, mode]);
+    if (mode === 'bar') return barChildren;
+    if (mode === 'products') {
+      const barId = barCat ? barCat.id : null;
+      return topLevelCats.slice(startIdx).filter((c) => c.id !== barId);
+    }
+    return [];
+  }, [mode, barChildren, topLevelCats, startIdx, barCat]);
 
   const visibleSections = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -113,15 +157,16 @@ export default function MenuPage() {
 
   const overviewCats = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return cats;
-    return cats.filter((c) => {
+    if (!needle) return topLevelCats;
+    return topLevelCats.filter((c) => {
       const n = (getLocalizedField(c, 'name', lang) || '').toLowerCase();
       return n.includes(needle);
     });
-  }, [cats, q, lang]);
+  }, [topLevelCats, q, lang]);
 
+  // ---- Scroll-spy for active section in 'products' & 'bar' modes ---------
   useEffect(() => {
-    if (mode !== 'products' || visibleSections.length === 0) return undefined;
+    if ((mode !== 'products' && mode !== 'bar') || visibleSections.length === 0) return undefined;
     const observer = new IntersectionObserver(
       (entries) => {
         if (Date.now() < programmaticScrollUntilRef.current) return;
@@ -142,8 +187,22 @@ export default function MenuPage() {
     return () => observer.disconnect();
   }, [mode, visibleSections]);
 
+  // ---- Mode transitions --------------------------------------------------
+  const enterBarMode = () => {
+    setMode('bar');
+    setMobileNavOpen(false);
+    setActiveCatId(barCat ? barCat.id : null);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const enterProductsMode = (catId) => {
-    const idx = cats.findIndex((c) => c.id === catId);
+    if (barCat && catId === barCat.id) {
+      enterBarMode();
+      return;
+    }
+    const idx = topLevelCats.findIndex((c) => c.id === catId);
     if (idx < 0) return;
     setStartIdx(idx);
     setActiveCatId(catId);
@@ -161,8 +220,13 @@ export default function MenuPage() {
       enterProductsMode(catId);
       return;
     }
-    const idxInCats = cats.findIndex((c) => c.id === catId);
-    if (idxInCats < startIdx) {
+    if (barCat && catId === barCat.id) {
+      enterBarMode();
+      return;
+    }
+    const idxInTopLevel = topLevelCats.findIndex((c) => c.id === catId);
+    if (idxInTopLevel < 0) return;
+    if (mode === 'bar' || idxInTopLevel < startIdx) {
       enterProductsMode(catId);
       return;
     }
@@ -171,6 +235,15 @@ export default function MenuPage() {
     programmaticScrollUntilRef.current = Date.now() + 900;
     requestAnimationFrame(() => {
       const el = document.getElementById('cat-' + catId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const handleSelectBarChild = (childId) => {
+    setActiveCatId(childId);
+    programmaticScrollUntilRef.current = Date.now() + 900;
+    requestAnimationFrame(() => {
+      const el = document.getElementById('cat-' + childId);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   };
@@ -193,15 +266,18 @@ export default function MenuPage() {
   const restaurantName =
     (settings && (settings.restaurant_name || settings.name)) || 'Sharq Gavhari';
 
+  // Drawer breadcrumb resolves names from the FULL cats list so bar children
+  // still display correctly in the product detail drawer.
   const selectedProductCategoryName = useMemo(() => {
     if (!selectedProduct) return '';
     const cat = cats.find((c) => c.id === selectedProduct.category_id);
     return cat ? getLocalizedField(cat, 'name', lang) : '';
   }, [selectedProduct, cats, lang]);
 
-  // Hero backdrop: when admin uploads a hero image we render it as the
-  // hero of /menu (with a dark gradient overlay for legibility). Falls back
-  // to a plain text block when no image is set.
+  // Sidebar always sees only the top-level list; in bar mode the Bar tile
+  // stays highlighted via activeCatId === barCat.id.
+  const sidebarActiveId = mode === 'bar' && barCat ? barCat.id : activeCatId;
+
   const heroBg = settings && settings.background_image_url;
   const heroStyle = useMemo(
     () => (heroBg
@@ -218,6 +294,13 @@ export default function MenuPage() {
     ? 'mb-7 relative overflow-hidden rounded-3xl border border-white/10 px-6 py-9 lg:px-9 lg:py-12 shadow-soft'
     : 'mb-7';
 
+  const heroSubtitle =
+    mode === 'overview'
+      ? t('menu.chooseCategory')
+      : mode === 'bar'
+        ? (getLocalizedField(barCat, 'name', lang) || 'Bar')
+        : t('hero.description');
+
   return (
     <div className="min-h-screen text-white">
       <button
@@ -233,9 +316,9 @@ export default function MenuPage() {
         variant="drawer"
         open={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
-        categories={cats}
+        categories={topLevelCats}
         productCounts={productCounts}
-        activeCategoryId={activeCatId}
+        activeCategoryId={sidebarActiveId}
         onSelectCategory={handleSelectCategory}
         query={q}
         onQueryChange={setQ}
@@ -245,9 +328,9 @@ export default function MenuPage() {
         <aside className="hidden lg:block min-w-0">
           <CustomerSidebar
             variant="fixed"
-            categories={cats}
+            categories={topLevelCats}
             productCounts={productCounts}
-            activeCategoryId={activeCatId}
+            activeCategoryId={sidebarActiveId}
             onSelectCategory={handleSelectCategory}
             query={q}
             onQueryChange={setQ}
@@ -270,7 +353,7 @@ export default function MenuPage() {
             </h1>
             <div className="mt-3.5 h-px w-16 bg-gradient-to-r from-gold/85 via-gold/45 to-transparent" />
             <p className="mt-4 text-white/72 text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
-              {mode === 'overview' ? t('menu.chooseCategory') : t('hero.description')}
+              {heroSubtitle}
             </p>
           </motion.section>
 
@@ -308,6 +391,20 @@ export default function MenuPage() {
                 </div>
               )}
             </section>
+          ) : mode === 'bar' ? (
+            <BarView
+              barCat={barCat}
+              barChildren={barChildren}
+              visibleSections={visibleSections}
+              activeCatId={activeCatId}
+              productCounts={productCounts}
+              onSelectChild={handleSelectBarChild}
+              onBack={handleBackToOverview}
+              onOpenProduct={handleOpenProduct}
+              sectionRefs={sectionRefs}
+              t={t}
+              lang={lang}
+            />
           ) : (
             <>
               <div className="mb-5 flex items-center gap-3">
@@ -375,5 +472,135 @@ export default function MenuPage() {
         onClose={handleCloseDrawer}
       />
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bar nested view: chip rail + grouped product sections                       */
+/* -------------------------------------------------------------------------- */
+function BarView({
+  barCat,
+  barChildren,
+  visibleSections,
+  activeCatId,
+  productCounts,
+  onSelectChild,
+  onBack,
+  onOpenProduct,
+  sectionRefs,
+  t,
+  lang,
+}) {
+  const barName = getLocalizedField(barCat, 'name', lang) || 'Bar';
+
+  // Only render chips for sub-categories that actually have visible products
+  // after the search filter \u2014 keeps the rail tidy.
+  const visibleChildIds = new Set(visibleSections.map((s) => s.category.id));
+  const chipChildren = barChildren.filter((c) => visibleChildIds.has(c.id));
+
+  return (
+    <>
+      <div className="mb-5 flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={onBack}
+          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] text-white/80 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition"
+        >
+          <Icon name="back" size={14} className="transition group-hover:-translate-x-0.5" />
+          <span>{t('menu.backToCategories')}</span>
+        </button>
+      </div>
+
+      {/* Bar header */}
+      <div className="mb-6">
+        <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
+          {t('menu.categoriesTitle')}
+        </div>
+        <h2 className="font-display text-3xl md:text-4xl gold-text leading-[1.05]">{barName}</h2>
+        <div className="mt-2.5 h-px w-12 bg-gradient-to-r from-gold/85 via-gold/45 to-transparent" />
+      </div>
+
+      {/* Sub-category chip rail. Horizontally scrollable on mobile, wraps on lg+. */}
+      {chipChildren.length > 0 && (
+        <div className="mb-7 -mx-4 lg:mx-0 px-4 lg:px-0 overflow-x-auto no-scrollbar">
+          <div className="flex lg:flex-wrap gap-2 lg:gap-2.5 min-w-min">
+            {chipChildren.map((c) => {
+              const name = getLocalizedField(c, 'name', lang);
+              const active = activeCatId === c.id;
+              const count = productCounts[c.id] || 0;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onSelectChild(c.id)}
+                  aria-pressed={active}
+                  className={
+                    'shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] border transition ' +
+                    (active
+                      ? 'bg-gold/[0.12] border-gold/40 text-gold shadow-[0_4px_18px_-8px_rgba(212,175,55,0.55)]'
+                      : 'bg-white/[0.04] border-white/10 text-white/80 hover:text-white hover:border-white/20')
+                  }
+                >
+                  <span className="truncate max-w-[180px]">{name}</span>
+                  <span
+                    className={
+                      'text-[11px] tabular-nums px-1.5 py-0.5 rounded-md ring-1 transition ' +
+                      (active
+                        ? 'text-gold/90 bg-gold/10 ring-gold/30'
+                        : 'text-white/55 bg-white/[0.04] ring-white/10')
+                    }
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {visibleSections.length === 0 ? (
+        <EmptyState
+          title={t('common.empty')}
+          description={t('common.tryDifferent')}
+          icon="image"
+        />
+      ) : (
+        <motion.div
+          initial={sectionsFade.initial}
+          animate={sectionsFade.animate}
+          transition={sectionsFade.transition}
+          className="space-y-12"
+        >
+          {visibleSections.map((s) => (
+            <section
+              key={s.category.id}
+              id={'cat-' + s.category.id}
+              data-cat-id={s.category.id}
+              ref={(el) => { sectionRefs.current[s.category.id] = el; }}
+              className="scroll-mt-24"
+            >
+              <div className="flex items-end justify-between gap-3 mb-5">
+                <div className="min-w-0">
+                  <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
+                    {barName}
+                  </div>
+                  <h3 className="font-display text-2xl md:text-3xl gold-text leading-[1.1] truncate">
+                    {getLocalizedField(s.category, 'name', lang)}
+                  </h3>
+                  <div className="mt-2 h-px w-10 bg-gradient-to-r from-gold/80 via-gold/40 to-transparent" />
+                </div>
+                <span className="text-white/45 text-sm tabular-nums shrink-0 mb-1">{s.products.length}</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                {s.products.map((p) => (
+                  <ProductCard key={p.id} product={p} onOpen={onOpenProduct} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </motion.div>
+      )}
+    </>
   );
 }

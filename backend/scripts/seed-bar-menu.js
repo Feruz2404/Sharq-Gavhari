@@ -7,20 +7,20 @@
  *
  * Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from .env (loaded via dotenv).
  *
- * What it does:
- *   1. Upserts 20 bar sub-categories using a `bar-*` slug convention.
- *      sort_order is set in the 1000\u20131019 range so the bar block sits at the
- *      bottom of the existing menu without disturbing existing categories.
- *   2. For every product, looks up by (category_id, name_ru). If found it
- *      updates price / secondary_price / availability. Otherwise it inserts a
- *      new row.
+ * What it does (in order):
+ *   1. Upserts a top-level Bar parent category (slug = 'bar', parent_id = NULL).
+ *   2. Cleans up any previously-seeded bar-* rows so they all point at the
+ *      Bar parent (no-ops on a fresh DB, fixes legacy rows in place).
+ *   3. Upserts the 20 bar sub-categories with parent_id = <bar parent id>
+ *      using bar-* slugs and 1000-1019 sort orders.
+ *   4. Upserts every product into its sub-category (lookup by
+ *      (category_id, name_ru); update if found, insert if not).
  *
- * Re-running the script does NOT create duplicates and does NOT reset prices
- * the admin has changed by hand \u2014 it only updates the canonical fields
- * (price, secondary_price, is_active, sort_order, name_*).
+ * Re-running the script never duplicates rows and never resets prices the
+ * admin has changed by hand for products NOT in the canonical list.
  *
- * IMPORTANT: requires migration 006_add_secondary_price_to_products.sql to be
- * applied first, otherwise inserts that include `secondary_price` will fail.
+ * IMPORTANT: requires migrations 006_add_secondary_price_to_products.sql AND
+ * 007_add_categories_parent_id.sql to have been applied first.
  */
 
 const path = require('path');
@@ -41,8 +41,47 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-async function upsertCategory(cat) {
-  // Upsert by unique slug. Returns the resulting row.
+async function ensureBarParent() {
+  // Top-level Bar entry. sort_order 999 puts it after the existing food
+  // categories (which use 0\u2013100ish) but before the bar-* children
+  // (1000\u20131019) \u2014 although children no longer appear at the top
+  // level once parent_id is set, sort_order remains correct everywhere.
+  const row = {
+    slug: 'bar',
+    name_uz: 'Bar',
+    name_ru: '\u0411\u0430\u0440',
+    name_en: 'Bar',
+    sort_order: 999,
+    is_active: true,
+    parent_id: null,
+  };
+  const { data, error } = await sb
+    .from('categories')
+    .upsert(row, { onConflict: 'slug' })
+    .select()
+    .single();
+  if (error) throw new Error('ensureBarParent: ' + error.message);
+  return data;
+}
+
+async function cleanupLegacyBarRows(barParentId) {
+  // Re-attach any bar-* row that was previously seeded without parent_id
+  // (or with the wrong parent) to the Bar parent. Idempotent: a no-op on a
+  // freshly-seeded DB.
+  const { error } = await sb
+    .from('categories')
+    .update({ parent_id: barParentId })
+    .like('slug', 'bar-%');
+  if (error) throw new Error('cleanupLegacyBarRows: ' + error.message);
+  // The Bar parent itself must always have parent_id = NULL.
+  const { error: e2 } = await sb
+    .from('categories')
+    .update({ parent_id: null })
+    .eq('slug', 'bar');
+  if (e2) throw new Error('cleanupLegacyBarRows(bar): ' + e2.message);
+}
+
+async function upsertCategory(cat, barParentId) {
   const row = {
     slug: cat.slug,
     name_uz: cat.name_uz,
@@ -50,6 +89,7 @@ async function upsertCategory(cat) {
     name_en: cat.name_en,
     sort_order: cat.sort_order,
     is_active: true,
+    parent_id: barParentId,
   };
   const { data, error } = await sb
     .from('categories')
@@ -63,9 +103,6 @@ async function upsertCategory(cat) {
 }
 
 async function upsertProduct(categoryId, item, sortOrder) {
-  // Look up by (category_id, name_ru). Update if found, insert if not.
-  // We don't rely on a unique constraint so re-running stays safe across
-  // schema variations.
   const lookup = await sb
     .from('products')
     .select('id')
@@ -102,12 +139,20 @@ async function upsertProduct(categoryId, item, sortOrder) {
 }
 
 async function run() {
+  process.stdout.write('[bar-parent] ');
+  const barParent = await ensureBarParent();
+  process.stdout.write('\u2713 ' + barParent.id + '\n');
+
+  process.stdout.write('[cleanup] ');
+  await cleanupLegacyBarRows(barParent.id);
+  process.stdout.write('\u2713 legacy bar-* rows attached to parent\n');
+
   const all = BAR_NON_ALC.concat(BAR_ALC);
   let created = 0;
   let updated = 0;
   for (const cat of all) {
     process.stdout.write('[' + cat.slug + '] ');
-    const dbCat = await upsertCategory(cat);
+    const dbCat = await upsertCategory(cat, barParent.id);
     let i = 0;
     for (const item of cat.items) {
       const r = await upsertProduct(dbCat.id, item, i);
@@ -117,6 +162,7 @@ async function run() {
     process.stdout.write('\u2713 ' + cat.items.length + ' items\n');
   }
   console.log('\nDone. Inserted ' + created + ', updated ' + updated + '.');
+  console.log('Bar parent id: ' + barParent.id);
 }
 
 run().catch((e) => {
