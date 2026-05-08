@@ -13,6 +13,7 @@ import { useLanguageStore } from '../../stores/languageStore.js';
 import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
+import { detailImage } from '../../lib/menuImage.js';
 
 const slide = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35 } };
 
@@ -45,10 +46,13 @@ export default function ProductDetailPage() {
   const ing  = getLocalizedField(p, 'ingredients', lang);
   const unavailable = !p.is_available;
 
+  // Detail page uses image_url (optimized full-size); never image_original_url.
+  const heroImg = detailImage(p);
+
   const handleAdd = () => {
     if (unavailable) return;
     addItem(p, qty, note, lang);
-    toast.success(`${name} · ×${qty}`);
+    toast.success(`${name} \u00B7 \u00D7${qty}`);
   };
 
   return (
@@ -69,7 +73,7 @@ export default function ProductDetailPage() {
       <motion.div {...slide} className="max-w-4xl mx-auto px-4 pt-5 grid gap-5 md:grid-cols-2">
         <div className="glass overflow-hidden">
           <div className="aspect-[4/3] relative">
-            <ImageWithFallback src={p.image_url} alt={name} className="w-full h-full object-cover" />
+            <ImageWithFallback src={heroImg} alt={name} className="w-full h-full object-cover" />
             {unavailable && (
               <span className="absolute top-3 left-3 text-xs uppercase tracking-wider bg-red-600/90 text-white px-2.5 py-1 rounded-md">
                 {t('common.unavailable')}
@@ -86,15 +90,15 @@ export default function ProductDetailPage() {
           {desc && <p className="text-white/80 leading-relaxed">{desc}</p>}
           {ing && (
             <div>
-              <div className="label">{`Ingredients · ${lang.toUpperCase()}`}</div>
+              <div className="label">{`Ingredients \u00B7 ${lang.toUpperCase()}`}</div>
               <p className="text-white/65 text-sm">{ing}</p>
             </div>
           )}
 
           {(p.weight || p.preparation_time) && (
             <div className="flex flex-wrap gap-2">
-              {p.weight && <span className="pill">⚖ {p.weight}</span>}
-              {p.preparation_time && <span className="pill">⏱ {p.preparation_time}</span>}
+              {p.weight && <span className="pill">\u2696 {p.weight}</span>}
+              {p.preparation_time && <span className="pill">\u23F1 {p.preparation_time}</span>}
             </div>
           )}
 
@@ -103,7 +107,7 @@ export default function ProductDetailPage() {
           <div className="flex items-center justify-between">
             <span className="label !mb-0">{t('common.quantity')}</span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="btn-icon" aria-label="−"><Icon name="minus" size={14} /></button>
+              <button onClick={() => setQty(Math.max(1, qty - 1))} className="btn-icon" aria-label="\u2212"><Icon name="minus" size={14} /></button>
               <span className="w-9 text-center tabular-nums">{qty}</span>
               <button onClick={() => setQty(qty + 1)} className="btn-icon" aria-label="+"><Icon name="plus" size={14} /></button>
             </div>

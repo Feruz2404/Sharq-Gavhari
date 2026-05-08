@@ -7,6 +7,7 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
+import { detailImage } from '../../lib/menuImage.js';
 
 const overlayInitial = { opacity: 0 };
 const overlayAnimate = { opacity: 1 };
@@ -23,7 +24,6 @@ const mobileExit = { y: '100%' };
 
 const panelTransition = { type: 'spring', stiffness: 320, damping: 32 };
 
-// `sizes` paired with the drawer image's srcSet (thumb 600w + full 1600w).
 const DRAWER_SIZES = '(min-width: 1024px) 480px, 100vw';
 
 const FALLBACK_GRADIENT = (
@@ -84,6 +84,11 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
   const weight = safeProduct ? safeProduct.weight : null;
   const prepTime = safeProduct ? safeProduct.preparation_time : null;
 
+  // Detail surfaces use the optimized full-size image (image_url) and never
+  // image_original_url. The helper falls back to legacy thumbnail_url and
+  // image_thumb_url for safety.
+  const drawerImg = safeProduct ? detailImage(safeProduct) : null;
+
   const handleAdd = () => {
     if (!safeProduct || unavailable) return;
     addItem(safeProduct, qty, '', lang);
@@ -134,8 +139,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             <div className="overflow-y-auto flex-1">
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-white/[0.02]">
                 <ImageWithFallback
-                  src={safeProduct.image_url}
-                  thumbnailUrl={safeProduct.thumbnail_url}
+                  src={drawerImg}
                   alt={name}
                   fallback={FALLBACK_GRADIENT}
                   eager
@@ -159,7 +163,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                     </span>
                     {categoryName && (
                       <>
-                        <span aria-hidden="true" className="text-white/30 text-[10px]">•</span>
+                        <span aria-hidden="true" className="text-white/30 text-[10px]">\u2022</span>
                         <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
                           {categoryName}
                         </span>

@@ -140,4 +140,13 @@ export default {
     qrUrl: 'QR URL',
     downloadQR: 'Download QR',
   },
+  media: {
+    savingOriginal: 'Saving the original image...',
+    uploading: 'Uploading image...',
+    optimizing: 'Generating optimized version for the menu...',
+    success: 'Image uploaded successfully',
+    failed: 'Image upload failed',
+    tooLarge: 'Image is too large. Maximum allowed size: 50MB',
+    unsupportedFormat: 'Only JPG, PNG, and WebP images are accepted',
+  },
 };

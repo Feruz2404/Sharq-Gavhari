@@ -140,4 +140,15 @@ export default {
     qrUrl: 'QR URL',
     downloadQR: 'QR yuklab olish',
   },
+  // Image upload pipeline strings shown by ImageUploader / useImageUpload.
+  // Keys must match the stage names emitted by mediaSlice.
+  media: {
+    savingOriginal: 'Asl sifatdagi rasm saqlanmoqda...',
+    uploading: 'Rasm yuklanmoqda...',
+    optimizing: 'Menyu uchun optimallashtirilgan rasm tayyorlanmoqda...',
+    success: 'Rasm muvaffaqiyatli yuklandi',
+    failed: 'Rasm yuklashda xatolik yuz berdi',
+    tooLarge: 'Rasm hajmi juda katta. Maksimal ruxsat etilgan hajm: 50MB',
+    unsupportedFormat: 'Faqat JPG, PNG yoki WebP formatdagi rasmlar qabul qilinadi',
+  },
 };

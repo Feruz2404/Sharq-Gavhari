@@ -8,13 +8,13 @@ import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useCartStore } from '../../stores/cartStore.js';
 import { useT } from '../../locales/useT.js';
+import { cardImage } from '../../lib/menuImage.js';
 
 const hover = { y: -4 };
 const cardTransition = { type: 'spring', stiffness: 320, damping: 24 };
 
 // `sizes` for the responsive thumbnail. Mirrors the grid: 2 cols on phones,
-// 3 cols on md, 4 cols on xl. Lets the browser download the smaller asset
-// on smaller viewports.
+// 3 cols on md, 4 cols on xl. Lets the browser pick the right asset.
 const CARD_SIZES = '(min-width: 1280px) 22vw, (min-width: 768px) 32vw, 48vw';
 
 const FALLBACK_GRADIENT = (
@@ -45,12 +45,16 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
     if (!unavailable) addItem(product, 1, '', lang);
   };
 
+  // Public cards/lists prefer the optimized thumbnail (image_thumb_url) and
+  // fall back to the legacy thumbnail_url / image_url. Original (private) is
+  // never referenced here.
+  const imgSrc = cardImage(product);
+
   const body = (
     <>
       <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.02]">
         <ImageWithFallback
-          src={product.image_url}
-          thumbnailUrl={product.thumbnail_url}
+          src={imgSrc}
           alt={name}
           fallback={FALLBACK_GRADIENT}
           sizes={CARD_SIZES}
@@ -132,10 +136,6 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
   );
 }
 
-// Memoize the card body so a re-render of MenuPage (e.g. when the user types
-// in the search box) does not re-render every product card whose props are
-// unchanged. Comparison is shallow, which is correct because `product` is a
-// stable reference inside `prods` until the API list changes.
 function areEqual(prev, next) {
   return (
     prev.product === next.product &&

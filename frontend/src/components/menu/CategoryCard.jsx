@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import ImageWithFallback from '../common/ImageWithFallback.jsx';
 import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
+import { cardImage } from '../../lib/menuImage.js';
 
 const hover = { y: -4, scale: 1.012 };
 const tap   = { scale: 0.97 };
@@ -11,7 +12,6 @@ const cardTransition = { type: 'spring', stiffness: 320, damping: 22 };
 
 const CARD_SIZES = '(min-width: 1280px) 18vw, (min-width: 768px) 28vw, 48vw';
 
-// Deterministic gradient fallback when a category has no image.
 const GRADIENTS = [
   'from-amber-900/45 via-yellow-700/20 to-zinc-900',
   'from-rose-900/45  via-amber-700/20 to-zinc-900',
@@ -46,11 +46,13 @@ function CategoryCardImpl({ category, basePath = '/category', onClick, count }) 
     'ring-1 ring-transparent hover:ring-gold/35 hover:border-gold/20 ' +
     'hover:shadow-[0_22px_50px_-22px_rgba(212,175,55,0.55)] transition-all';
 
+  // Category cards are list/card surfaces \u2014 use the small thumbnail.
+  const imgSrc = cardImage(category);
+
   const inner = (
     <div className="relative aspect-[4/3] overflow-hidden">
       <ImageWithFallback
-        src={category.image_url}
-        thumbnailUrl={category.thumbnail_url}
+        src={imgSrc}
         alt={name}
         fallback={fallback}
         sizes={CARD_SIZES}

@@ -10,6 +10,7 @@ import { productService } from '../../services/productService.js';
 import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
+import { detailImage } from '../../lib/menuImage.js';
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -39,6 +40,8 @@ export default function CategoryPage() {
   if (loading) return <LoadingLogo fullscreen />;
 
   const name = category ? getLocalizedField(category, 'name', lang) : '';
+  // Category hero is a detail surface \u2014 prefer optimized full image.
+  const heroImg = category ? detailImage(category) : null;
 
   return (
     <div className="min-h-screen pb-32">
@@ -47,7 +50,7 @@ export default function CategoryPage() {
         {category && (
           <section className="glass overflow-hidden relative">
             <div className="relative aspect-[16/6] md:aspect-[16/5]">
-              <ImageWithFallback src={category.image_url} alt={name} className="w-full h-full object-cover" />
+              <ImageWithFallback src={heroImg} alt={name} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
                 <h1 className="font-display text-2xl md:text-4xl gold-text">{name}</h1>
