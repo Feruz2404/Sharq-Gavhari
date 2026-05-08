@@ -1,0 +1,11 @@
+{
+  "media": {
+    "uploading": "Rasm yuklanmoqda...",
+    "savingOriginal": "Asl sifatdagi rasm saqlanmoqda...",
+    "optimizing": "Menyu uchun optimallashtirilgan rasm tayyorlanmoqda...",
+    "success": "Rasm muvaffaqiyatli yuklandi",
+    "tooLarge": "Rasm hajmi juda katta. Maksimal ruxsat etilgan hajm: 50MB",
+    "unsupportedFormat": "Faqat JPG, PNG yoki WebP formatdagi rasmlar qabul qilinadi",
+    "failed": "Rasm yuklashda xatolik yuz berdi"
+  }
+}
