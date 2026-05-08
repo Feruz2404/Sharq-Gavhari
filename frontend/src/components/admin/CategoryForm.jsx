@@ -27,7 +27,6 @@ export default function CategoryForm({ initial = {}, onSubmit, onCancel, submitt
   const set = (k) => (e) =>
     setF((prev) => ({ ...prev, [k]: e && e.target ? e.target.value : e }));
 
-  // Legacy ImageUpload \u2014 used during creation when no entity id exists.
   const handleLegacyUpload = (res) => {
     setF((prev) => ({
       ...prev,
@@ -37,7 +36,6 @@ export default function CategoryForm({ initial = {}, onSubmit, onCancel, submitt
     }));
   };
 
-  // New ImageUploader \u2014 used while editing an existing category.
   const handleNewUpload = (res) => {
     setF((prev) => ({
       ...prev,
@@ -64,6 +62,14 @@ export default function CategoryForm({ initial = {}, onSubmit, onCancel, submitt
 
   const isEditing = Boolean(f.id);
 
+  // See ProductForm for context on why this is hoisted.
+  const imageUploaderValue = {
+    image_url: f.image_url,
+    image_thumb_url: f.image_thumb_url,
+    image_original_url: f.image_original_url,
+    image_object_path: f.image_object_path,
+  };
+
   return (
     <form onSubmit={submit} className="card grid md:grid-cols-2 gap-3">
       <div><label className="label">Slug</label><input className="input" value={f.slug || ''} onChange={set('slug')} placeholder="e.g. milliy" /></div>
@@ -77,12 +83,7 @@ export default function CategoryForm({ initial = {}, onSubmit, onCancel, submitt
           <ImageUploader
             entityType="category"
             entityId={f.id}
-            value=
-              image_url: f.image_url,
-              image_thumb_url: f.image_thumb_url,
-              image_original_url: f.image_original_url,
-              image_object_path: f.image_object_path,
-            
+            value={imageUploaderValue}
             onChange={handleNewUpload}
             helperText={UPLOAD_HINT[lang] || UPLOAD_HINT.en}
           />

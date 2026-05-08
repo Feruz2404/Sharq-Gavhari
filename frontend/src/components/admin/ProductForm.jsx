@@ -24,8 +24,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
     description_uz: '', description_ru: '', description_en: '',
     ingredients_uz: '', ingredients_ru: '', ingredients_en: '',
     image_url: '', thumbnail_url: '',
-    // New pipeline fields. Mirrored into legacy thumbnail_url on save so the
-    // public menu keeps rendering even before all consumers are migrated.
     image_thumb_url: '', image_original_url: '', image_object_path: '',
     price: 0, discount_price: null, secondary_price: null,
     weight: '', preparation_time: '',
@@ -79,9 +77,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
     if (!f.category_id) return;
     onSubmit({
       ...f,
-      // Defensive: mirror image_thumb_url / image_url into legacy
-      // thumbnail_url so menu cards render correctly on rows that haven't
-      // been re-uploaded through the new pipeline yet.
       thumbnail_url:
         f.thumbnail_url ||
         f.image_thumb_url ||
@@ -101,9 +96,17 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
 
   const isEditing = Boolean(f.id);
 
+  // Hoisted to a local const so the JSX uses single-brace {imageUploaderValue}.
+  // Inline  ...  object literals must be avoided in this codebase.
+  const imageUploaderValue = {
+    image_url: f.image_url,
+    image_thumb_url: f.image_thumb_url,
+    image_original_url: f.image_original_url,
+    image_object_path: f.image_object_path,
+  };
+
   return (
     <form onSubmit={submit} className="grid gap-4">
-      {/* Basic info */}
       <section className="card grid gap-3">
         <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Basic info</div>
         <div className="grid md:grid-cols-2 gap-3">
@@ -134,12 +137,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
               <ImageUploader
                 entityType="product"
                 entityId={f.id}
-                value=
-                  image_url: f.image_url,
-                  image_thumb_url: f.image_thumb_url,
-                  image_original_url: f.image_original_url,
-                  image_object_path: f.image_object_path,
-                
+                value={imageUploaderValue}
                 onChange={handleNewUpload}
                 helperText={UPLOAD_HINT[lang] || UPLOAD_HINT.en}
               />
@@ -158,7 +156,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         </div>
       </section>
 
-      {/* Names */}
       <section className="card grid gap-3">
         <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Names</div>
         <div className="grid md:grid-cols-3 gap-3">
@@ -168,7 +165,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         </div>
       </section>
 
-      {/* Descriptions */}
       <section className="card grid gap-3">
         <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Description</div>
         <div className="grid md:grid-cols-3 gap-3">
@@ -178,7 +174,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         </div>
       </section>
 
-      {/* Ingredients */}
       <section className="card grid gap-3">
         <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Ingredients</div>
         <div className="grid md:grid-cols-3 gap-3">
@@ -188,7 +183,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         </div>
       </section>
 
-      {/* Pricing */}
       <section className="card grid gap-3">
         <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Pricing & details</div>
         <div className="grid md:grid-cols-4 gap-3">
@@ -199,7 +193,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         </div>
       </section>
 
-      {/* Status & actions */}
       <section className="card flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-4">
           <ToggleSwitch label={t('admin.isAvailable')} checked={f.is_available} onChange={(v) => set('is_available')(v)} />
