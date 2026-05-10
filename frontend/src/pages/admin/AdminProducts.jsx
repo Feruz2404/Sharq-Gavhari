@@ -9,9 +9,16 @@ import { categoryService } from '../../services/categoryService.js';
 import { useT } from '../../locales/useT.js';
 import { formatPrice } from '../../utils/formatPrice.js';
 
-// Custom dark dropdown for the category filter. Replaces the native <select>
-// (which renders an opaque white browser menu on top of the admin table and
-// breaks the dark/gold theme). Closes on outside click and on Escape.
+// Shared glass styles so the search input and the dropdown trigger stay
+// visually integrated with the rest of the admin glassmorphism UI.
+const GLASS_FIELD =
+  'h-11 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-xl ' +
+  'text-sm text-white shadow-lg shadow-black/20 ' +
+  'focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/25 transition';
+
+// Custom dark glass dropdown for the category filter. Replaces the native
+// <select> (whose popup is an opaque OS-level overlay that breaks the
+// dark/gold theme). Closes on outside click and on Escape.
 function CategoryDropdown({ value, onChange, categories, allLabel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -41,14 +48,11 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         className={
-          'w-full h-10 flex items-center justify-between gap-2 ' +
-          'bg-white/[0.04] border border-white/10 rounded-lg px-3 ' +
-          'text-sm text-white focus:outline-none ' +
-          'focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition ' +
-          (open ? 'border-gold/40 ring-1 ring-gold/20' : '')
+          GLASS_FIELD + ' w-full flex items-center justify-between gap-2 px-4 ' +
+          (open ? 'border-gold/50 ring-1 ring-gold/25' : '')
         }
       >
-        <span className={'truncate ' + (selected ? 'text-white' : 'text-white/70')}>
+        <span className={'truncate ' + (selected ? 'text-white' : 'text-white/65')}>
           {buttonText}
         </span>
         <svg
@@ -56,7 +60,7 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
           width="14" height="14" viewBox="0 0 24 24"
           fill="none" stroke="currentColor" strokeWidth="2"
           strokeLinecap="round" strokeLinejoin="round"
-          className={'shrink-0 text-white/60 transition-transform ' + (open ? 'rotate-180' : '')}
+          className={'shrink-0 text-white/55 transition-transform ' + (open ? 'rotate-180' : '')}
           aria-hidden="true"
         >
           <path d="m6 9 6 6 6-6"/>
@@ -67,10 +71,10 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
         <ul
           role="listbox"
           className={
-            'absolute z-40 left-0 right-0 mt-1 ' +
+            'absolute z-50 left-0 right-0 mt-2 ' +
             'max-h-[260px] overflow-auto ' +
-            'rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl ' +
-            'shadow-2xl shadow-black/60 ring-1 ring-black/40 py-1'
+            'rounded-2xl border border-white/10 bg-[#1b120c]/75 backdrop-blur-2xl ' +
+            'shadow-2xl shadow-black/50 ring-1 ring-white/5 py-1.5'
           }
         >
           <DropdownOption
@@ -78,6 +82,9 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
             onClick={() => { onChange(''); setOpen(false); }}
             label={allLabel}
           />
+          {categories.length > 0 && (
+            <li aria-hidden="true" className="my-1 h-px bg-white/5 mx-3" />
+          )}
           {categories.map((c) => (
             <DropdownOption
               key={c.id}
@@ -93,15 +100,19 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
 }
 
 function DropdownOption({ selected, onClick, label }) {
+  // border-l-2 with a transparent default + gold-on-selected keeps text
+  // alignment perfectly consistent across rows.
   return (
     <li
       role="option"
       aria-selected={selected}
       onClick={onClick}
       className={
-        'px-3 py-2 text-sm cursor-pointer flex items-center justify-between gap-2 ' +
-        'hover:bg-white/10 transition ' +
-        (selected ? 'text-gold' : 'text-white/85')
+        'px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between gap-2 ' +
+        'border-l-2 transition ' +
+        (selected
+          ? 'border-gold bg-gold/15 text-gold'
+          : 'border-transparent text-white/80 hover:bg-white/10 hover:text-white')
       }
     >
       <span className="truncate">{label}</span>
@@ -195,9 +206,8 @@ export default function AdminProducts() {
     {
       key: 'image',
       label: '',
-      // Admin row preview prefers the optimized thumbnail so the table stays
-      // snappy even when the source images are 4K originals. Fall back to the
-      // legacy thumbnail_url column for pre-pipeline rows.
+      // Admin row preview prefers the optimized thumbnail (new pipeline)
+      // and falls back to the legacy thumbnail_url column.
       render: (r) => (
         <ImageWithFallback
           src={r.image_url}
@@ -237,9 +247,9 @@ export default function AdminProducts() {
 
       {/* Search + category filter row. relative + z-20 so the dropdown menu
           floats above the products table without clipping. */}
-      <div className="relative z-20 flex flex-col sm:flex-row gap-2">
+      <div className="relative z-20 flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-white/40">
+          <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-white/50">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7"/>
               <path d="m20 20-3.5-3.5"/>
@@ -251,14 +261,14 @@ export default function AdminProducts() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Mahsulotlarni qidirish..."
             aria-label="Mahsulotlarni qidirish"
-            className="w-full h-10 bg-white/[0.04] border border-white/10 rounded-lg pl-9 pr-9 text-sm text-white placeholder-white/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition"
+            className={GLASS_FIELD + ' w-full pl-10 pr-10 placeholder-white/40'}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
               aria-label="Tozalash"
-              className="absolute inset-y-0 right-2 flex items-center justify-center w-7 text-white/50 hover:text-white transition"
+              className="absolute inset-y-0 right-2 flex items-center justify-center w-8 text-white/55 hover:text-white transition"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18"/>
