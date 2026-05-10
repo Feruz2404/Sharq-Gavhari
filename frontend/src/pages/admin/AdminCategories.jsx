@@ -38,12 +38,13 @@ export default function AdminCategories() {
     {
       key: 'image',
       label: '',
-      // Use the optimized thumbnail when available so the admin grid stays
-      // light \u2014 falls back to image_url for legacy rows.
+      // Prefer the new image-pipeline thumbnail and fall back to the legacy
+      // thumbnail_url column for pre-pipeline rows. image_url itself stays as
+      // the primary src, so existing rows continue to render unchanged.
       render: (r) => (
         <ImageWithFallback
           src={r.image_url}
-          thumbnailUrl={r.thumbnail_url}
+          thumbnailUrl={r.image_thumb_url || r.thumbnail_url}
           className="w-10 h-10 rounded-md object-cover"
         />
       ),
@@ -54,7 +55,7 @@ export default function AdminCategories() {
     { key: 'sort_order', label: t('admin.sortOrder') },
     { key: 'is_active', label: t('admin.isActive'), render: (r) => r.is_active ? '\u2713' : '\u2014' },
     { key: 'actions', label: '', render: (r) => (
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-2 justify-end whitespace-nowrap">
         <button onClick={() => { setEditing(r); setCreating(false); }} className="btn-ghost !py-1 !px-2 text-xs">{t('common.edit')}</button>
         <button onClick={() => setConfirmDel(r)} className="btn-ghost !py-1 !px-2 text-xs !text-red-400">{t('common.delete')}</button>
       </div>
@@ -62,10 +63,18 @@ export default function AdminCategories() {
   ];
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl gold-text">{t('admin.categories')}</h1>
-        <button onClick={() => { setCreating(true); setEditing(null); }} className="btn-gold">+ {t('common.add')}</button>
+    <div className="grid gap-4 min-w-0">
+      {/* flex-wrap + min-w-0 + shrink-0 mirror AdminProducts so the header
+          never pushes the "+ Qo'shish" button outside the content frame on
+          tablet widths. */}
+      <div className="flex items-center justify-between flex-wrap gap-2 min-w-0">
+        <h1 className="font-display text-2xl gold-text truncate min-w-0">{t('admin.categories')}</h1>
+        <button
+          onClick={() => { setCreating(true); setEditing(null); }}
+          className="btn-gold shrink-0"
+        >
+          + {t('common.add')}
+        </button>
       </div>
       {(creating || editing) && (
         <CategoryForm
@@ -75,7 +84,9 @@ export default function AdminCategories() {
           onCancel={() => { setCreating(false); setEditing(null); }}
         />
       )}
-      <DataTable columns={cols} rows={list} empty={t('common.empty')} />
+      <div className="min-w-0">
+        <DataTable columns={cols} rows={list} empty={t('common.empty')} />
+      </div>
       <ConfirmDialog open={!!confirmDel} onCancel={() => setConfirmDel(null)} onConfirm={onDelete} title={`Delete category?`} />
     </div>
   );

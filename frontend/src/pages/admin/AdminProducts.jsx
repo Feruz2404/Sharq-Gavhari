@@ -9,14 +9,14 @@ import { categoryService } from '../../services/categoryService.js';
 import { useT } from '../../locales/useT.js';
 import { formatPrice } from '../../utils/formatPrice.js';
 
-// Shared glass styles so the search input and the dropdown trigger stay
-// visually integrated with the rest of the admin glassmorphism UI.
+// Shared lighter-glass styles so the search input and the dropdown trigger
+// stay visually integrated with the rest of the Sharq Gavhari admin shell.
 const GLASS_FIELD =
-  'h-11 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-xl ' +
-  'text-sm text-white shadow-lg shadow-black/20 ' +
+  'h-11 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-2xl ' +
+  'text-sm text-white shadow-lg shadow-black/15 ' +
   'focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/25 transition';
 
-// Custom dark glass dropdown for the category filter. Replaces the native
+// Custom dark-glass dropdown for the category filter. Replaces the native
 // <select> (whose popup is an opaque OS-level overlay that breaks the
 // dark/gold theme). Closes on outside click and on Escape.
 function CategoryDropdown({ value, onChange, categories, allLabel }) {
@@ -41,7 +41,7 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
   const buttonText = selected ? selected.name_uz : allLabel;
 
   return (
-    <div ref={ref} className="relative w-full sm:w-[240px]">
+    <div ref={ref} className="relative w-full sm:w-56 sm:shrink-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -73,8 +73,8 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
           className={
             'absolute z-50 left-0 right-0 mt-2 ' +
             'max-h-[260px] overflow-auto ' +
-            'rounded-2xl border border-white/10 bg-[#1b120c]/75 backdrop-blur-2xl ' +
-            'shadow-2xl shadow-black/50 ring-1 ring-white/5 py-1.5'
+            'rounded-2xl border border-white/10 bg-[#1b120c]/45 backdrop-blur-2xl ' +
+            'shadow-2xl shadow-black/25 ring-1 ring-white/5 py-1.5'
           }
         >
           <DropdownOption
@@ -226,7 +226,7 @@ export default function AdminProducts() {
       <ToggleSwitch checked={r.is_active} onChange={async (v) => { await productService.setActive(r.id, v); reload(); }} />
     ) },
     { key: 'actions', label: '', render: (r) => (
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-2 justify-end whitespace-nowrap">
         <button onClick={() => { setEditing(r); setCreating(false); }} className="btn-ghost !py-1 !px-2 text-xs">{t('common.edit')}</button>
         <button onClick={() => setConfirmDel(r)} className="btn-ghost !py-1 !px-2 text-xs !text-red-400">{t('common.delete')}</button>
       </div>
@@ -234,21 +234,30 @@ export default function AdminProducts() {
   ];
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-baseline gap-3">
-          <h1 className="font-display text-2xl gold-text">{t('admin.products')}</h1>
-          <span className="text-xs text-white/55 tabular-nums">
+    <div className="grid gap-4 min-w-0">
+      {/* Header row: title + count on the left, "+ Qo'shish" on the right.
+          min-w-0 on the cluster so it can shrink instead of pushing the
+          button outside; shrink-0 on the button so it never gets clipped. */}
+      <div className="flex items-center justify-between flex-wrap gap-2 min-w-0">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="font-display text-2xl gold-text truncate">{t('admin.products')}</h1>
+          <span className="text-xs text-white/55 tabular-nums shrink-0">
             {isFiltering ? filteredList.length + ' / ' + list.length : list.length}
           </span>
         </div>
-        <button onClick={() => { setCreating(true); setEditing(null); }} className="btn-gold">+ {t('common.add')}</button>
+        <button
+          onClick={() => { setCreating(true); setEditing(null); }}
+          className="btn-gold shrink-0"
+        >
+          + {t('common.add')}
+        </button>
       </div>
 
       {/* Search + category filter row. relative + z-20 so the dropdown menu
-          floats above the products table without clipping. */}
-      <div className="relative z-20 flex flex-col sm:flex-row gap-2.5">
-        <div className="relative flex-1">
+          floats above the products table without clipping. min-w-0 on the
+          search wrapper so it can shrink inside the flex parent. */}
+      <div className="relative z-20 flex flex-col sm:flex-row gap-2.5 min-w-0">
+        <div className="relative flex-1 min-w-0">
           <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-white/50">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7"/>
@@ -296,8 +305,10 @@ export default function AdminProducts() {
         />
       )}
 
-      {/* relative z-0 keeps the table beneath the dropdown menu when open. */}
-      <div className="relative z-0">
+      {/* relative z-0 keeps the table beneath the dropdown menu when open.
+          min-w-0 lets the DataTable wrapper enable its horizontal scroll on
+          narrow viewports instead of overflowing the page. */}
+      <div className="relative z-0 min-w-0">
         <DataTable columns={cols} rows={filteredList} empty={emptyMessage} />
       </div>
 

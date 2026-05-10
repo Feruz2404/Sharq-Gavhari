@@ -3,8 +3,12 @@ export default function DataTable({ columns, rows, empty = 'Empty' }) {
     return <div className="glass p-10 text-center text-white/55">{empty}</div>;
   }
   return (
-    <div className="glass overflow-x-auto">
-      <table className="w-full text-sm">
+    // overflow-x-auto on the wrapper + min-w on the table guarantee that on
+    // narrow viewports the columns keep their natural width and the wrapper
+    // scrolls horizontally, instead of cramming the cells and overflowing the
+    // page. min-w-0 keeps the wrapper itself shrinkable inside flex parents.
+    <div className="glass overflow-x-auto min-w-0">
+      <table className="w-full min-w-[640px] text-sm">
         <thead className="text-left text-white/55 border-b border-white/10">
           <tr>
             {columns.map((c) => (
