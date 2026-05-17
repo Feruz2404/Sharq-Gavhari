@@ -5,6 +5,7 @@ import { syncManifestForRoute } from './utils/manifestManager.js';
 import { registerInternalPWA, unregisterInternalPWA } from './utils/registerInternalPWA.js';
 import { useSettingsStore } from './stores/settingsStore.js';
 import { ToastProvider } from './components/common/Toast.jsx';
+import { enforceQrModeIfNeeded, isQrMode } from './lib/pwa.js';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -13,7 +14,13 @@ export default function App() {
   useEffect(() => { fetchSettings().catch(() => {}); }, [fetchSettings]);
 
   useEffect(() => {
+    // QR visitors: ensure no SW + no manifest, on every route change.
+    if (enforceQrModeIfNeeded()) {
+      syncManifestForRoute(pathname); // runs the QR-mode no-op branch
+      return;
+    }
     syncManifestForRoute(pathname);
+    if (isQrMode()) return; // belt-and-suspenders
     if (pathname.startsWith('/tablet') || pathname.startsWith('/admin')) {
       registerInternalPWA();
     } else {

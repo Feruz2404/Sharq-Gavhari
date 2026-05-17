@@ -3,11 +3,13 @@ import Icon from '../common/Icon.jsx';
 import { useInstallPrompt } from '../../utils/useInstallPrompt.js';
 import { useT } from '../../locales/useT.js';
 import IOSInstallModal from './IOSInstallModal.jsx';
+import { isQrMode } from '../../lib/pwa.js';
 
 /**
  * Install button rendered in the customer/admin header.
  *
  * Behavior:
+ *   - QR visitors NEVER see this control \u2014 we early-return null.
  *   - On Android/desktop Chromium browsers: shows when the browser fires
  *     `beforeinstallprompt`; clicking calls `prompt()` on the deferred event.
  *   - On iOS / iPadOS Safari (where `beforeinstallprompt` is never fired):
@@ -15,15 +17,14 @@ import IOSInstallModal from './IOSInstallModal.jsx';
  *     localized step-by-step Add-to-Home-Screen instructions modal.
  *   - When the app is already installed (standalone display mode), the button
  *     is hidden in all environments.
- *
- * Variants:
- *   - 'icon' : compact gold icon button (used in the header)
- *   - 'pill' : full pill with label
  */
 export default function InstallAppButton({ variant = 'icon', className = '' }) {
   const { canInstall, install, platform } = useInstallPrompt();
   const t = useT();
   const [iosOpen, setIosOpen] = useState(false);
+
+  // Hard suppress for QR guests \u2014 must run before any other condition.
+  if (isQrMode()) return null;
   if (!canInstall) return null;
 
   const handleClick = () => {

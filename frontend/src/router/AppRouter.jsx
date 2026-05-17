@@ -13,26 +13,32 @@ const TableRedirectPage    = lazy(() => import('../pages/customer/TableRedirectP
 const CategoryPage         = lazy(() => import('../pages/customer/CategoryPage.jsx'));
 const ProductDetailPage    = lazy(() => import('../pages/customer/ProductDetailPage.jsx'));
 const CartPage             = lazy(() => import('../pages/customer/CartPage.jsx'));
+const QrEntryPage          = lazy(() => import('../pages/customer/QrEntryPage.jsx'));
 
 // Tablet
 const TabletHome           = lazy(() => import('../pages/tablet/TabletHome.jsx'));
 const TabletMenuPage       = lazy(() => import('../pages/tablet/TabletMenuPage.jsx'));
 const TabletCartPage       = lazy(() => import('../pages/tablet/TabletCartPage.jsx'));
 
-// Admin
-// NOTE: AdminTables route intentionally not registered. The Tables/Stollar
-// feature has been removed from the admin UI surface. The page file may still
-// exist on disk for legacy reference but is unreachable from the router.
+// Admin (lazy so QR / customer bundles never preload admin code).
 const AdminLogin           = lazy(() => import('../pages/admin/AdminLogin.jsx'));
 const AdminDashboard       = lazy(() => import('../pages/admin/AdminDashboard.jsx'));
 const AdminCategories      = lazy(() => import('../pages/admin/AdminCategories.jsx'));
 const AdminProducts        = lazy(() => import('../pages/admin/AdminProducts.jsx'));
 const AdminSettings        = lazy(() => import('../pages/admin/AdminSettings.jsx'));
+const AdminQR              = lazy(() => import('../pages/admin/AdminQR.jsx'));
 
 export default function AppRouter() {
   return (
     <Suspense fallback={<LoadingLogo fullscreen />}>
       <Routes>
+        {/* QR entry route \u2014 sits OUTSIDE any layout so no header / footer
+            renders during the brief redirect. The component stamps qrMode
+            into sessionStorage, unregisters the SW, then sends the guest to
+            /menu via replace. */}
+        <Route path="/qr"            element={<QrEntryPage />} />
+        <Route path="/qr/:tableId"   element={<QrEntryPage />} />
+
         {/* Customer (no PWA) */}
         <Route element={<CustomerLayout />}>
           <Route path="/"                    element={<LoadingPage />} />
@@ -57,6 +63,7 @@ export default function AppRouter() {
           <Route path="/admin/dashboard"  element={<AdminDashboard />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/products"   element={<AdminProducts />} />
+          <Route path="/admin/qr"         element={<AdminQR />} />
           <Route path="/admin/settings"   element={<AdminSettings />} />
           {/* Tables route removed on purpose. */}
           <Route path="/admin/tables"     element={<Navigate to="/admin/dashboard" replace />} />

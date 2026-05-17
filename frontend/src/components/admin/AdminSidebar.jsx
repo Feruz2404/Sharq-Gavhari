@@ -4,7 +4,7 @@ import Icon from '../common/Icon.jsx';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useT } from '../../locales/useT.js';
 
-function Item({ to, label, icon, onClick }) {
+function Item({ to, label, icon, iconNode, onClick }) {
   return (
     <NavLink
       to={to}
@@ -16,11 +16,31 @@ function Item({ to, label, icon, onClick }) {
             : 'text-white/70 hover:text-white hover:bg-white/5'
         }`}
     >
-      <Icon name={icon} size={16} />
+      {iconNode || <Icon name={icon} size={16} />}
       <span className="truncate">{label}</span>
     </NavLink>
   );
 }
+
+// Inline QR icon used for the "QR kodlar" sidebar item. Kept local so we
+// don't have to extend the shared <Icon> name set.
+const QrIcon = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16" height="16" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3"  y="3"  width="7" height="7" rx="1"/>
+    <rect x="14" y="3"  width="7" height="7" rx="1"/>
+    <rect x="3"  y="14" width="7" height="7" rx="1"/>
+    <path d="M14 14h3v3h-3z"/>
+    <path d="M20 14v3"/>
+    <path d="M14 20h3"/>
+    <path d="M20 20h1"/>
+  </svg>
+);
 
 export default function AdminSidebar() {
   const t = useT();
@@ -37,6 +57,7 @@ export default function AdminSidebar() {
       <Item to="/admin/dashboard"  label={t('admin.dashboard')}  icon="dashboard" onClick={() => setOpen(false)} />
       <Item to="/admin/categories" label={t('admin.categories')} icon="list"      onClick={() => setOpen(false)} />
       <Item to="/admin/products"   label={t('admin.products')}   icon="image"     onClick={() => setOpen(false)} />
+      <Item to="/admin/qr"         label="QR kodlar"             iconNode={QrIcon} onClick={() => setOpen(false)} />
       <Item to="/admin/settings"   label={t('admin.settings')}   icon="gear"      onClick={() => setOpen(false)} />
     </>
   );
