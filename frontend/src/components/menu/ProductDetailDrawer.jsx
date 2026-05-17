@@ -100,7 +100,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
     if (onClose) onClose();
   };
 
-  // Desktop = right-side drawer (\u2265 lg). Mobile = bottom sheet capped at
+  // Desktop = right-side drawer (>= lg). Mobile = bottom sheet capped at
   // 92dvh with a 32px top corner radius and a safe-area-aware action bar.
   const panelClass = isDesktop
     ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[-24px_0_60px_-20px_rgba(0,0,0,0.7)]'
@@ -141,7 +141,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             exit={panelExit}
             transition={panelTransition}
           >
-            {/* Close button \u2014 44\u00d744 tap target. */}
+            {/* Close button — 44x44 tap target. */}
             <button
               type="button"
               onClick={onClose}
@@ -178,7 +178,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                     </span>
                     {categoryName && (
                       <>
-                        <span aria-hidden="true" className="text-white/30 text-[10px]">\u2022</span>
+                        <span aria-hidden="true" className="text-white/30 text-[10px]">•</span>
                         <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
                           {categoryName}
                         </span>

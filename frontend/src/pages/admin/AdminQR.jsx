@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 // All generated QR entries are stored locally in the admin browser. The
-// product/table catalogue is intentionally not pushed to the backend \u2014 the
+// product/table catalogue is intentionally not pushed to the backend — the
 // admin generates printable cards on demand and we keep the data inside the
 // admin device. If the user clears storage, they simply regenerate the QRs.
 const STORAGE_KEY = 'sg_admin_qr_tables';
@@ -83,15 +83,15 @@ function QrCard({ entry, onDelete }) {
         />
       </div>
       <div className="text-[11px] text-white/65 leading-snug max-w-[16rem]">
-        Menyuni ko\u2018rish uchun skaner qiling
+        Menyuni ko'rish uchun skaner qiling
       </div>
       <div className="text-[10px] text-white/40 break-all">{url}</div>
 
-      {/* Action row \u2014 hidden during print so the printed card is clean. */}
+      {/* Action row — hidden during print so the printed card is clean. */}
       <div className="flex flex-wrap items-center justify-center gap-2 mt-1 print:hidden">
         <button onClick={handleDownload} className="btn-ghost !py-1.5 !px-3 text-xs">PNG</button>
         <button onClick={handlePrint}    className="btn-ghost !py-1.5 !px-3 text-xs">Chop etish</button>
-        <button onClick={() => onDelete(entry.id)} className="btn-ghost !py-1.5 !px-3 text-xs !text-red-400">O\u2018chirish</button>
+        <button onClick={() => onDelete(entry.id)} className="btn-ghost !py-1.5 !px-3 text-xs !text-red-400">O'chirish</button>
       </div>
     </div>
   );
@@ -163,7 +163,7 @@ export default function AdminQR() {
             className="input"
           />
         </div>
-        <button type="submit" className="btn-gold whitespace-nowrap shrink-0">+ Qo\u2018shish</button>
+        <button type="submit" className="btn-gold whitespace-nowrap shrink-0">+ Qo'shish</button>
       </form>
 
       {tables.length === 0 ? (

@@ -22,8 +22,8 @@ import { useT } from '../../locales/useT.js';
  * Both modes share the SAME inner content via <SidebarContent/>: brand block,
  * language switcher, search input, vertical category navigation list, and a
  * footer cluster (admin + install + cart link). The sidebar does NOT render an
- * "All" / "Barchasi" entry \u2014 the customer menu page treats category
- * selection as the primary action.
+ * "All" / "Barchasi" entry — the customer menu page treats category selection
+ * as the primary action.
  */
 export default function CustomerSidebar({
   variant = 'fixed',
@@ -153,7 +153,7 @@ function SidebarContent({
             </div>
             {tableNumber ? (
               <div className="text-[10px] text-white/55 uppercase tracking-[0.22em] mt-1 truncate">
-                {t('common.table')} \u00b7 #{tableNumber}
+                {t('common.table')} · #{tableNumber}
               </div>
             ) : (
               <div className="text-[10px] text-white/45 uppercase tracking-[0.22em] mt-1 truncate">
