@@ -16,36 +16,50 @@ import { useT } from '../../locales/useT.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
+// Module-level menu cache. Survives across MenuPage mounts within the same
+// tab session so navigating Menu → Cart → Back-to-Menu reuses the previously
+// loaded categories + products *instantly* (no spinner, no refetch flash).
+// A background refresh runs in the background after TTL elapses so the page
+// silently updates when something changed admin-side.
+//   * Reset only happens on hard reload — we never clear it from cart, QR
+//     entry, or language switch.
+//   * Settings are not cached here; useSettingsStore handles that.
+let _menuCache = null;            // { cats, prods, ts }
+const MENU_CACHE_TTL_MS = 5 * 60 * 1000;
+
 // Product grid (mobile-first). Two big design decisions:
 //   1. auto-fill (not auto-fit) keeps empty tracks reserved, so a category
 //      with 1 product never has the single card stretch to fill the row.
 //   2. justify-center centres the row of tracks within the main column when
 //      there is leftover space (e.g. tracks at their max), avoiding the
 //      huge empty right-side gap we had with justify-start.
-// Tier bounds match the user-specified card-width windows:
+// Tier bounds (paired with sidebar-from-lg):
 //   <390px   : 1 col
 //   390-639  : 2 cols (1fr each, phones / small tablets)
-//   sm 640+  : auto-fill minmax(230px, 280px)
-//   lg 1024+ : auto-fill minmax(260px, 310px)   (iPad landscape, no sidebar)
-//   xl 1280+ : auto-fill minmax(280px, 340px)   (desktop, with sidebar)
+//   sm 640+  : auto-fill minmax(230px, 280px)   (iPad portrait, no sidebar)
+//   lg 1024+ : auto-fill minmax(240px, 310px)   (iPad landscape, sidebar 280)
+//                The lower 240 min ensures 3 tracks still fit at 1180px iPad
+//                Air landscape after subtracting the 280 sidebar; at 1024
+//                iPad landscape the grid degrades to 2 premium 310px cards.
+//   xl 1280+ : auto-fill minmax(280px, 340px)   (desktop, sidebar 300)
 const PRODUCT_GRID_CLS =
   'grid gap-5 sm:gap-6 justify-center ' +
   'grid-cols-1 min-[390px]:grid-cols-2 ' +
   'sm:grid-cols-[repeat(auto-fill,minmax(230px,280px))] ' +
-  'lg:grid-cols-[repeat(auto-fill,minmax(260px,310px))] ' +
+  'lg:grid-cols-[repeat(auto-fill,minmax(240px,310px))] ' +
   'xl:grid-cols-[repeat(auto-fill,minmax(280px,340px))]';
 
-// Category overview grid — same pattern but tuned to the smaller square
+// Category overview grid — same balanced pattern but tuned to smaller square
 // category tiles. 2 cols on phone, 3-ish on tablet, 3-4 on desktop.
 const CATEGORY_GRID_CLS =
   'grid gap-4 sm:gap-5 xl:gap-6 justify-center ' +
   'grid-cols-2 ' +
   'sm:grid-cols-[repeat(auto-fill,minmax(190px,240px))] ' +
-  'lg:grid-cols-[repeat(auto-fill,minmax(220px,280px))] ' +
-  'xl:grid-cols-[repeat(auto-fill,minmax(240px,300px))]';
+  'lg:grid-cols-[repeat(auto-fill,minmax(200px,260px))] ' +
+  'xl:grid-cols-[repeat(auto-fill,minmax(220px,290px))]';
 
-// Safe-area-aware vertical offsets, expressed as Tailwind arbitrary values
-// (underscores stand in for the spaces required by CSS calc() / max()).
+// Safe-area-aware vertical offsets (Tailwind arbitrary values, underscores
+// stand in for spaces inside calc() / max()).
 const HAMBURGER_TOP_CLS =
   'top-[max(12px,_calc(env(safe-area-inset-top,_0px)_+_8px))]';
 const MAIN_PAD_TOP_CLS =
@@ -62,15 +76,28 @@ const sectionsFade = {
   transition: { duration: 0.3 },
 };
 
+function normalizeMenu(rawCats, rawProds) {
+  const activeCats = (rawCats || []).filter((x) => x.is_active !== false);
+  const activeProds = (rawProds || []).filter((x) => x.is_active !== false);
+  const sortedCats = [...activeCats].sort((a, b) => {
+    const ao = typeof a.sort_order === 'number' ? a.sort_order : 999;
+    const bo = typeof b.sort_order === 'number' ? b.sort_order : 999;
+    return ao - bo;
+  });
+  return { cats: sortedCats, prods: activeProds };
+}
+
 export default function MenuPage() {
   const t = useT();
   const lang = useLanguageStore((s) => s.language);
   const settings = useSettingsStore((s) => s.settings);
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
-  const [cats, setCats] = useState([]);
-  const [prods, setProds] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Seed from cache on first render so the page paints instantly when
+  // returning from /cart or /product/:id.
+  const [cats, setCats] = useState(() => (_menuCache ? _menuCache.cats : []));
+  const [prods, setProds] = useState(() => (_menuCache ? _menuCache.prods : []));
+  const [loading, setLoading] = useState(() => !_menuCache);
   const [q, setQ] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -83,22 +110,27 @@ export default function MenuPage() {
   const sectionRefs = useRef({});
   const programmaticScrollUntilRef = useRef(0);
 
+  // Stale-while-revalidate: if cache is fresh, skip the network. Otherwise
+  // refetch in the background — the UI is already rendering cached data so
+  // there is no spinner-flash. On a fully cold tab we fall through to the
+  // initial fetch + loading state.
   useEffect(() => {
     let cancelled = false;
+    const cached = _menuCache;
+    const isFresh = cached && Date.now() - cached.ts < MENU_CACHE_TTL_MS;
+    if (isFresh) return undefined;
+
     Promise.all([categoryService.list(), productService.list()])
       .then(([c, p]) => {
         if (cancelled) return;
-        const activeCats = (c || []).filter((x) => x.is_active !== false);
-        const activeProds = (p || []).filter((x) => x.is_active !== false);
-        const sortedCats = [...activeCats].sort((a, b) => {
-          const ao = typeof a.sort_order === 'number' ? a.sort_order : 999;
-          const bo = typeof b.sort_order === 'number' ? b.sort_order : 999;
-          return ao - bo;
-        });
-        setCats(sortedCats);
-        setProds(activeProds);
+        const { cats: nextCats, prods: nextProds } = normalizeMenu(c, p);
+        _menuCache = { cats: nextCats, prods: nextProds, ts: Date.now() };
+        setCats(nextCats);
+        setProds(nextProds);
       })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -315,13 +347,14 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen text-white">
       {/* Hamburger — fixed, safe-area-aware top offset, never overlaps the
-          notch on iPhone. Shown below xl so iPad portrait & landscape both
-          open the sidebar as an overlay instead of competing for grid width. */}
+          notch on iPhone. Shown below lg so phones and iPad portrait open the
+          sidebar as an overlay; iPad landscape (1024+) gets the fixed sidebar
+          inside the grid below. */}
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label={t('nav.openMenu')}
-        className={`xl:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft ${HAMBURGER_TOP_CLS}`}
+        className={`lg:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft ${HAMBURGER_TOP_CLS}`}
       >
         <Icon name="menu" size={18} />
       </button>
@@ -338,14 +371,16 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
-      {/* Page container. Wider (1380px) so desktop main column has room for
-          three premium ~310-320px cards once the 300px sidebar is subtracted.
-          Padding stays at px-4 / lg:px-6 (no xl:px-8) to leave ≥900px for the
-          main column at 1280px width — enough to keep 3 product tracks. */}
+      {/* Page container.
+          • max-w-[1380px] is wide enough for desktop premium cards.
+          • px-4 / lg:px-6 (no xl bump) leaves ≥900px main column at 1280.
+          • Grid switches on at lg (1024+) so iPad landscape sees the sidebar.
+          • lg uses a slimmer 280px sidebar so the main column has enough room
+            for premium product cards; xl bumps back to the standard 300px. */}
       <div
-        className={`max-w-[1380px] mx-auto px-4 lg:px-6 ${MAIN_PAD_TOP_CLS} xl:pt-8 pb-12 xl:grid xl:grid-cols-[300px_minmax(0,1fr)] xl:gap-8`}
+        className={`max-w-[1380px] mx-auto px-4 lg:px-6 ${MAIN_PAD_TOP_CLS} lg:pt-8 pb-12 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[300px_minmax(0,1fr)] xl:gap-8`}
       >
-        <aside className="hidden xl:block min-w-0">
+        <aside className="hidden lg:block min-w-0">
           <CustomerSidebar
             variant="fixed"
             categories={topLevelCats}
