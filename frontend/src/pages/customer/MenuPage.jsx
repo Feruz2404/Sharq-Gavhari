@@ -16,10 +16,20 @@ import { useT } from '../../locales/useT.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
-// Product grid \u2014 1 col below 390px, 2 cols on phones \u2265390px, 3 cols at md,
-// 4 cols at xl. Kept in a constant so both grids stay in sync.
+// Product grid. Strategy:
+//   * below 390px: 1 col (very narrow phones get a single column).
+//   * 390-767px:   2 cols (phones / small tablets).
+//   * md (>=768): auto-fit with minmax(250px, 1fr). This is the key fix for
+//                 desktop: cards never get narrower than ~250px, and the
+//                 number of columns adapts to the available main-content
+//                 width instead of being locked at 3 or 4. With the sidebar
+//                 (300px) eaten on lg+, the main area at common desktop
+//                 widths (1440 / 1536 / 1920, all capped to a 1240px
+//                 container) renders 3 comfortable ~290px cards instead of
+//                 4 cramped ~150px ones.
+//   * gap-5 / xl:gap-6 gives premium breathing room without wasting space.
 const PRODUCT_GRID_CLS =
-  'grid grid-cols-1 min-[390px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4';
+  'grid grid-cols-1 min-[390px]:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 md:gap-5 xl:gap-6';
 
 // Safe-area-aware vertical offsets, expressed as Tailwind arbitrary values
 // (underscores stand in for the spaces required by CSS calc() / max()).
@@ -291,7 +301,7 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen text-white">
-      {/* Hamburger \u2014 fixed, safe-area-aware top offset, never overlaps the
+      {/* Hamburger — fixed, safe-area-aware top offset, never overlaps the
           notch on iPhone. */}
       <button
         type="button"
@@ -314,8 +324,11 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
+      {/* Page container. max-w-[1240px] keeps the layout centered and premium
+          even on 1920px monitors; px-4 / lg:px-6 / xl:px-8 progressively adds
+          breathing room without wasting horizontal space on phones. */}
       <div
-        className={`max-w-7xl mx-auto px-4 lg:px-6 ${MAIN_PAD_TOP_CLS} lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7`}
+        className={`max-w-[1240px] mx-auto px-4 lg:px-6 xl:px-8 ${MAIN_PAD_TOP_CLS} lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8`}
       >
         <aside className="hidden lg:block min-w-0">
           <CustomerSidebar
@@ -371,7 +384,7 @@ export default function MenuPage() {
                   icon="image"
                 />
               ) : (
-                <div className="grid gap-3 md:gap-4 grid-cols-[repeat(auto-fit,minmax(150px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
+                <div className="grid gap-4 md:gap-5 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
                   {overviewCats.map((c) => (
                     <CategoryCard
                       key={c.id}
