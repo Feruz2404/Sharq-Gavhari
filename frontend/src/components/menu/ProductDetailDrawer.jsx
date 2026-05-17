@@ -26,6 +26,14 @@ const panelTransition = { type: 'spring', stiffness: 320, damping: 32 };
 
 const DRAWER_SIZES = '(min-width: 1024px) 480px, 100vw';
 
+// Safe-area-aware Tailwind arbitrary value. On mobile we want
+// padding-bottom = env(safe-area-inset-bottom) + 16px so the action bar
+// always sits clear of the iOS home indicator. On md+ we go back to 1.25rem.
+const ACTION_PB_CLS =
+  'pb-[calc(env(safe-area-inset-bottom,_0px)_+_1rem)] md:pb-5';
+const CLOSE_TOP_CLS =
+  'top-[max(12px,_calc(env(safe-area-inset-top,_0px)_+_4px))]';
+
 const FALLBACK_GRADIENT = (
   <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/25 to-zinc-950 flex items-center justify-center">
     <span className="font-display text-6xl text-gold/40 drop-shadow-[0_2px_12px_rgba(212,175,55,0.25)]">SG</span>
@@ -92,8 +100,8 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
     if (onClose) onClose();
   };
 
-  // Desktop = right-side drawer (\u2265 lg). Mobile = bottom sheet with
-  // 92dvh cap, 32px top corners, and safe-area-aware action bar.
+  // Desktop = right-side drawer (\u2265 lg). Mobile = bottom sheet capped at
+  // 92dvh with a 32px top corner radius and a safe-area-aware action bar.
   const panelClass = isDesktop
     ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[-24px_0_60px_-20px_rgba(0,0,0,0.7)]'
     : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[92dvh] rounded-t-[32px] bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden';
@@ -102,12 +110,12 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
   const panelAnimate = isDesktop ? desktopAnimate : mobileAnimate;
   const panelExit = isDesktop ? desktopExit : mobileExit;
 
-  // Image height: on mobile we cap at ~38vh so the content + sticky action
-  // bar both fit naturally above the keyboard / safe area. On desktop the
-  // image keeps its 16:10 aspect ratio.
+  // Image: mobile caps the hero around 38vh so content + action bar always fit.
   const imageWrapCls = isDesktop
     ? 'relative aspect-[16/10] w-full overflow-hidden bg-white/[0.02]'
     : 'relative w-full overflow-hidden bg-white/[0.02] h-[38vh] max-h-[320px] min-h-[220px]';
+
+  const closeTopCls = isDesktop ? 'top-3' : CLOSE_TOP_CLS;
 
   return (
     <AnimatePresence>
@@ -133,13 +141,12 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             exit={panelExit}
             transition={panelTransition}
           >
-            {/* Close button \u2014 44\u00d744 tap target, safe-area-aware on mobile. */}
+            {/* Close button \u2014 44\u00d744 tap target. */}
             <button
               type="button"
               onClick={onClose}
               aria-label={t('common.close')}
-              className="absolute right-3 z-10 w-11 h-11 rounded-full bg-black/70 hover:bg-black/90 hover:text-gold text-white/90 flex items-center justify-center border border-white/10 transition shadow-lg shadow-black/40"
-              style={isDesktop ? { top: '12px' } : { top: 'max(12px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
+              className={`absolute right-3 z-10 w-11 h-11 rounded-full bg-black/70 hover:bg-black/90 hover:text-gold text-white/90 flex items-center justify-center border border-white/10 transition shadow-lg shadow-black/40 ${closeTopCls}`}
             >
               <Icon name="close" size={16} />
             </button>
@@ -239,12 +246,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             {/* Sticky add-to-cart bar. Mobile gets safe-area inset so the
                 button never sits under the iOS home indicator. */}
             <div
-              className="border-t border-white/10 px-4 pt-4 md:p-5 flex items-center gap-3 bg-black/55 backdrop-blur-xl"
-              style=
-                paddingBottom: isDesktop
-                  ? '1.25rem'
-                  : 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-              
+              className={`border-t border-white/10 px-4 pt-4 md:px-5 md:pt-5 flex items-center gap-3 bg-black/55 backdrop-blur-xl ${ACTION_PB_CLS}`}
             >
               <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] shrink-0">
                 <button

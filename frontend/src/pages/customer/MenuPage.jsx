@@ -16,11 +16,17 @@ import { useT } from '../../locales/useT.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
-// Product grid class \u2014 1 column below 390px, 2 cols on phones \u2265390px,
-// 3 cols at md, 4 cols at xl. Kept in a constant so both the top-level and
-// the bar sub-section grids stay in sync.
+// Product grid \u2014 1 col below 390px, 2 cols on phones \u2265390px, 3 cols at md,
+// 4 cols at xl. Kept in a constant so both grids stay in sync.
 const PRODUCT_GRID_CLS =
   'grid grid-cols-1 min-[390px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4';
+
+// Safe-area-aware vertical offsets, expressed as Tailwind arbitrary values
+// (underscores stand in for the spaces required by CSS calc() / max()).
+const HAMBURGER_TOP_CLS =
+  'top-[max(12px,_calc(env(safe-area-inset-top,_0px)_+_8px))]';
+const MAIN_PAD_TOP_CLS =
+  'pt-[max(4rem,_calc(env(safe-area-inset-top,_0px)_+_4rem))]';
 
 const heroFade = {
   initial: { opacity: 0, y: 8 },
@@ -285,15 +291,13 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen text-white">
-      {/* Hamburger \u2014 absolute positioned, sits below the device notch via
-          safe-area padding. Kept off-flow so the hero text starts cleanly at
-          the top of the content column. */}
+      {/* Hamburger \u2014 fixed, safe-area-aware top offset, never overlaps the
+          notch on iPhone. */}
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label={t('nav.openMenu')}
-        className="lg:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft"
-        style= top: 'max(12px, calc(env(safe-area-inset-top, 0px) + 8px))' 
+        className={`lg:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft ${HAMBURGER_TOP_CLS}`}
       >
         <Icon name="menu" size={18} />
       </button>
@@ -311,8 +315,7 @@ export default function MenuPage() {
       />
 
       <div
-        className="max-w-7xl mx-auto px-4 lg:px-6 lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7"
-        style= paddingTop: 'max(4rem, calc(env(safe-area-inset-top, 0px) + 4rem))' 
+        className={`max-w-7xl mx-auto px-4 lg:px-6 ${MAIN_PAD_TOP_CLS} lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7`}
       >
         <aside className="hidden lg:block min-w-0">
           <CustomerSidebar
