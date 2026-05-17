@@ -16,20 +16,27 @@ import { useT } from '../../locales/useT.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
-// Product grid. Strategy:
-//   * below 390px: 1 col (very narrow phones get a single column).
-//   * 390-767px:   2 cols (phones / small tablets).
-//   * md (>=768): auto-fit with minmax(250px, 1fr). This is the key fix for
-//                 desktop: cards never get narrower than ~250px, and the
-//                 number of columns adapts to the available main-content
-//                 width instead of being locked at 3 or 4. With the sidebar
-//                 (300px) eaten on lg+, the main area at common desktop
-//                 widths (1440 / 1536 / 1920, all capped to a 1240px
-//                 container) renders 3 comfortable ~290px cards instead of
-//                 4 cramped ~150px ones.
-//   * gap-5 / xl:gap-6 gives premium breathing room without wasting space.
+// Product grid. Strategy (per-tier, mobile-first):
+//   * <390px         : 1 col (very narrow phones).
+//   * 390-639px      : 2 cols of 1fr each (phones / small tablets).
+//   * sm 640-1023px  : auto-fill with each track bounded to minmax(220px,260px).
+//                       "auto-fill" (NOT auto-fit) is the key: with auto-fit a
+//                       lone item collapses the empty tracks and stretches
+//                       to fill the row. auto-fill keeps the empty tracks
+//                       reserved, so 1 product stays ~260px wide instead of
+//                       sprawling across the page.
+//   * lg 1024-1279px : auto-fill minmax(240px,280px). iPad landscape lands
+//                       here; the fixed sidebar is no longer showing at lg,
+//                       so the main area is full container width.
+//   * xl 1280+px     : auto-fill minmax(250px,285px). Desktop with sidebar.
+//   * `justify-start` keeps tracks aligned to the left so single-card rows
+//     never centre-stretch.
 const PRODUCT_GRID_CLS =
-  'grid grid-cols-1 min-[390px]:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 md:gap-5 xl:gap-6';
+  'grid gap-4 sm:gap-5 xl:gap-6 justify-start ' +
+  'grid-cols-1 min-[390px]:grid-cols-2 ' +
+  'sm:grid-cols-[repeat(auto-fill,minmax(220px,260px))] ' +
+  'lg:grid-cols-[repeat(auto-fill,minmax(240px,280px))] ' +
+  'xl:grid-cols-[repeat(auto-fill,minmax(250px,285px))]';
 
 // Safe-area-aware vertical offsets, expressed as Tailwind arbitrary values
 // (underscores stand in for the spaces required by CSS calc() / max()).
@@ -302,12 +309,13 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen text-white">
       {/* Hamburger — fixed, safe-area-aware top offset, never overlaps the
-          notch on iPhone. */}
+          notch on iPhone. Shown below xl so iPad portrait & landscape both
+          open the sidebar as an overlay instead of competing for grid width. */}
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label={t('nav.openMenu')}
-        className={`lg:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft ${HAMBURGER_TOP_CLS}`}
+        className={`xl:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft ${HAMBURGER_TOP_CLS}`}
       >
         <Icon name="menu" size={18} />
       </button>
@@ -324,13 +332,13 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
-      {/* Page container. max-w-[1240px] keeps the layout centered and premium
-          even on 1920px monitors; px-4 / lg:px-6 / xl:px-8 progressively adds
-          breathing room without wasting horizontal space on phones. */}
+      {/* Page container. Fixed sidebar now activates at xl (1280px+) only,
+          so md/lg tablets (iPad 768-1280) get the full container width for
+          the product grid — no compressed cards on iPad. */}
       <div
-        className={`max-w-[1240px] mx-auto px-4 lg:px-6 xl:px-8 ${MAIN_PAD_TOP_CLS} lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8`}
+        className={`max-w-[1240px] mx-auto px-4 lg:px-6 xl:px-8 ${MAIN_PAD_TOP_CLS} xl:pt-8 pb-12 xl:grid xl:grid-cols-[300px_minmax(0,1fr)] xl:gap-8`}
       >
-        <aside className="hidden lg:block min-w-0">
+        <aside className="hidden xl:block min-w-0">
           <CustomerSidebar
             variant="fixed"
             categories={topLevelCats}
@@ -384,7 +392,7 @@ export default function MenuPage() {
                   icon="image"
                 />
               ) : (
-                <div className="grid gap-4 md:gap-5 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+                <div className="grid gap-4 md:gap-5 justify-start grid-cols-[repeat(auto-fill,minmax(160px,200px))] md:grid-cols-[repeat(auto-fill,minmax(190px,230px))]">
                   {overviewCats.map((c) => (
                     <CategoryCard
                       key={c.id}

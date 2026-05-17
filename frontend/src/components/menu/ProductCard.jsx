@@ -14,9 +14,8 @@ const hover = { y: -4 };
 const cardTransition = { type: 'spring', stiffness: 320, damping: 24 };
 
 // `sizes` for the responsive thumbnail. Mirrors the grid: 1 col on tiny
-// phones, 2 cols on phones, then auto-fit ~280-320px from md+. Lets the
-// browser pick the right asset.
-const CARD_SIZES = '(min-width: 1280px) 300px, (min-width: 768px) 33vw, (min-width: 390px) 48vw, 92vw';
+// phones, 2 cols on phones, then ~260-285px tracks from sm+.
+const CARD_SIZES = '(min-width: 1280px) 285px, (min-width: 640px) 280px, (min-width: 390px) 48vw, 92vw';
 
 // Premium dark-gradient fallback for cards that don't have an image yet.
 // Same aspect ratio as a real image (the parent fixes aspect-[4/3]).
@@ -118,11 +117,23 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
     ? 'btn-gold w-full justify-center shrink-0 whitespace-nowrap min-h-10 rounded-2xl px-4 text-sm'
     : 'btn-gold shrink-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-w-[116px] min-h-10 rounded-2xl px-4 text-sm';
 
+  // Card max-width: at <390px (1-col) we want the card to fill the row width
+  // for comfortable reading. From 390px upward, every grid track is capped
+  // at <=285px, but we add an explicit max-w-[285px] as a belt-and-suspenders
+  // guarantee so a stray container (or a future view that drops the grid
+  // wrapper) can never make a single card sprawl to 500px+. mx-auto centres
+  // the card within its grid cell when the cell happens to be wider than 285.
+  const wrapperClass =
+    'group glass h-full w-full mx-auto min-[390px]:max-w-[285px] ' +
+    'overflow-hidden flex flex-col ring-1 ring-transparent ' +
+    'hover:ring-gold/25 hover:shadow-[0_22px_50px_-22px_rgba(212,175,55,0.45)] ' +
+    'transition-shadow content-visibility-auto';
+
   return (
     <motion.div
       whileHover={hover}
       transition={cardTransition}
-      className="group glass h-full overflow-hidden flex flex-col ring-1 ring-transparent hover:ring-gold/25 hover:shadow-[0_22px_50px_-22px_rgba(212,175,55,0.45)] transition-shadow content-visibility-auto"
+      className={wrapperClass}
     >
       {onOpen ? (
         <button
