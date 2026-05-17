@@ -13,9 +13,9 @@ import { cardImage } from '../../lib/menuImage.js';
 const hover = { y: -4 };
 const cardTransition = { type: 'spring', stiffness: 320, damping: 24 };
 
-// `sizes` for the responsive thumbnail. Mirrors the grid: 1 col on tiny
-// phones, 2 cols on phones, then ~260-285px tracks from sm+.
-const CARD_SIZES = '(min-width: 1280px) 285px, (min-width: 640px) 280px, (min-width: 390px) 48vw, 92vw';
+// `sizes` for the responsive thumbnail. Mirrors the grid max-track widths so
+// the browser fetches the right WebP variant.
+const CARD_SIZES = '(min-width: 1280px) 340px, (min-width: 1024px) 310px, (min-width: 640px) 280px, (min-width: 390px) 48vw, 92vw';
 
 // Premium dark-gradient fallback for cards that don't have an image yet.
 // Same aspect ratio as a real image (the parent fixes aspect-[4/3]).
@@ -86,9 +86,10 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
         )}
       </div>
       {/* Title + description sit in their own flex column so the footer can
-          flex its own min-height area without competing for vertical space. */}
-      <div className="px-4 pt-4 pb-2 flex flex-col flex-1">
-        <h3 className="font-display text-base md:text-[17px] text-white leading-tight line-clamp-2 min-h-[2.5em]">
+          flex its own min-height area without competing for vertical space.
+          Padding scales up on desktop for a more premium feel. */}
+      <div className="px-4 lg:px-5 pt-4 lg:pt-5 pb-2 flex flex-col flex-1">
+        <h3 className="font-display text-base md:text-[17px] lg:text-lg text-white leading-tight line-clamp-2 min-h-[2.5em]">
           {name}
         </h3>
         {desc ? (
@@ -103,28 +104,33 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
   // Footer.
   //   * Single-price (the common case): `flex items-center justify-between
   //     gap-3 flex-wrap`. Price wrapper is `flex-1 min-w-0` so it can shrink
-  //     before wrapping; button is `shrink-0 min-w-[116px]`. If the card is
+  //     before wrapping; button is `shrink-0 min-w-[120px]`. If the card is
   //     ever narrow enough that the two cannot fit side-by-side, flex-wrap
   //     drops the button onto its own line full-width — they NEVER overlap,
   //     no absolute positioning anywhere.
   //   * Dual-price: stacked, because the dual price block is already two
   //     lines tall and looks better with a full-width button below it.
   const footerClass = hasDualPrice
-    ? 'mt-auto px-4 pb-4 pt-1 flex flex-col gap-2.5'
-    : 'mt-auto px-4 pb-4 pt-1 flex items-center justify-between gap-3 flex-wrap';
+    ? 'mt-auto px-4 lg:px-5 pb-4 lg:pb-5 pt-1 flex flex-col gap-2.5'
+    : 'mt-auto px-4 lg:px-5 pb-4 lg:pb-5 pt-1 flex items-center justify-between gap-3 flex-wrap';
   const priceWrapClass = hasDualPrice ? 'min-w-0' : 'min-w-0 flex-1';
   const buttonClass = hasDualPrice
     ? 'btn-gold w-full justify-center shrink-0 whitespace-nowrap min-h-10 rounded-2xl px-4 text-sm'
-    : 'btn-gold shrink-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-w-[116px] min-h-10 rounded-2xl px-4 text-sm';
+    : 'btn-gold shrink-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-w-[120px] min-h-10 rounded-2xl px-4 text-sm';
 
-  // Card max-width: at <390px (1-col) we want the card to fill the row width
-  // for comfortable reading. From 390px upward, every grid track is capped
-  // at <=285px, but we add an explicit max-w-[285px] as a belt-and-suspenders
-  // guarantee so a stray container (or a future view that drops the grid
-  // wrapper) can never make a single card sprawl to 500px+. mx-auto centres
-  // the card within its grid cell when the cell happens to be wider than 285.
+  // Card max-width scales with the grid tier so a lone card can be a premium
+  // 340px on desktop instead of being capped at a phone-sized 285px:
+  //   <640 (mobile)   : no max-w (fills its 1- or 2-col cell naturally)
+  //   sm 640-1023     : max-w-[280px]   (matches sm grid track max)
+  //   lg 1024-1279    : max-w-[310px]   (matches lg grid track max)
+  //   xl 1280+        : max-w-[340px]   (matches xl grid track max)
+  // The grid already bounds each track to these maxes; max-w on the card is
+  // a defensive layer so a stray container can never make a single card
+  // sprawl. mx-auto centres the card inside its track when track > max-w
+  // (rare — only when the grid degrades to fewer tracks than fit).
   const wrapperClass =
-    'group glass h-full w-full mx-auto min-[390px]:max-w-[285px] ' +
+    'group glass h-full w-full mx-auto ' +
+    'min-[640px]:max-w-[280px] lg:max-w-[310px] xl:max-w-[340px] ' +
     'overflow-hidden flex flex-col ring-1 ring-transparent ' +
     'hover:ring-gold/25 hover:shadow-[0_22px_50px_-22px_rgba(212,175,55,0.45)] ' +
     'transition-shadow content-visibility-auto';

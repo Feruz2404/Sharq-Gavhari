@@ -16,27 +16,33 @@ import { useT } from '../../locales/useT.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
-// Product grid. Strategy (per-tier, mobile-first):
-//   * <390px         : 1 col (very narrow phones).
-//   * 390-639px      : 2 cols of 1fr each (phones / small tablets).
-//   * sm 640-1023px  : auto-fill with each track bounded to minmax(220px,260px).
-//                       "auto-fill" (NOT auto-fit) is the key: with auto-fit a
-//                       lone item collapses the empty tracks and stretches
-//                       to fill the row. auto-fill keeps the empty tracks
-//                       reserved, so 1 product stays ~260px wide instead of
-//                       sprawling across the page.
-//   * lg 1024-1279px : auto-fill minmax(240px,280px). iPad landscape lands
-//                       here; the fixed sidebar is no longer showing at lg,
-//                       so the main area is full container width.
-//   * xl 1280+px     : auto-fill minmax(250px,285px). Desktop with sidebar.
-//   * `justify-start` keeps tracks aligned to the left so single-card rows
-//     never centre-stretch.
+// Product grid (mobile-first). Two big design decisions:
+//   1. auto-fill (not auto-fit) keeps empty tracks reserved, so a category
+//      with 1 product never has the single card stretch to fill the row.
+//   2. justify-center centres the row of tracks within the main column when
+//      there is leftover space (e.g. tracks at their max), avoiding the
+//      huge empty right-side gap we had with justify-start.
+// Tier bounds match the user-specified card-width windows:
+//   <390px   : 1 col
+//   390-639  : 2 cols (1fr each, phones / small tablets)
+//   sm 640+  : auto-fill minmax(230px, 280px)
+//   lg 1024+ : auto-fill minmax(260px, 310px)   (iPad landscape, no sidebar)
+//   xl 1280+ : auto-fill minmax(280px, 340px)   (desktop, with sidebar)
 const PRODUCT_GRID_CLS =
-  'grid gap-4 sm:gap-5 xl:gap-6 justify-start ' +
+  'grid gap-5 sm:gap-6 justify-center ' +
   'grid-cols-1 min-[390px]:grid-cols-2 ' +
-  'sm:grid-cols-[repeat(auto-fill,minmax(220px,260px))] ' +
-  'lg:grid-cols-[repeat(auto-fill,minmax(240px,280px))] ' +
-  'xl:grid-cols-[repeat(auto-fill,minmax(250px,285px))]';
+  'sm:grid-cols-[repeat(auto-fill,minmax(230px,280px))] ' +
+  'lg:grid-cols-[repeat(auto-fill,minmax(260px,310px))] ' +
+  'xl:grid-cols-[repeat(auto-fill,minmax(280px,340px))]';
+
+// Category overview grid — same pattern but tuned to the smaller square
+// category tiles. 2 cols on phone, 3-ish on tablet, 3-4 on desktop.
+const CATEGORY_GRID_CLS =
+  'grid gap-4 sm:gap-5 xl:gap-6 justify-center ' +
+  'grid-cols-2 ' +
+  'sm:grid-cols-[repeat(auto-fill,minmax(190px,240px))] ' +
+  'lg:grid-cols-[repeat(auto-fill,minmax(220px,280px))] ' +
+  'xl:grid-cols-[repeat(auto-fill,minmax(240px,300px))]';
 
 // Safe-area-aware vertical offsets, expressed as Tailwind arbitrary values
 // (underscores stand in for the spaces required by CSS calc() / max()).
@@ -332,11 +338,12 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
-      {/* Page container. Fixed sidebar now activates at xl (1280px+) only,
-          so md/lg tablets (iPad 768-1280) get the full container width for
-          the product grid — no compressed cards on iPad. */}
+      {/* Page container. Wider (1380px) so desktop main column has room for
+          three premium ~310-320px cards once the 300px sidebar is subtracted.
+          Padding stays at px-4 / lg:px-6 (no xl:px-8) to leave ≥900px for the
+          main column at 1280px width — enough to keep 3 product tracks. */}
       <div
-        className={`max-w-[1240px] mx-auto px-4 lg:px-6 xl:px-8 ${MAIN_PAD_TOP_CLS} xl:pt-8 pb-12 xl:grid xl:grid-cols-[300px_minmax(0,1fr)] xl:gap-8`}
+        className={`max-w-[1380px] mx-auto px-4 lg:px-6 ${MAIN_PAD_TOP_CLS} xl:pt-8 pb-12 xl:grid xl:grid-cols-[300px_minmax(0,1fr)] xl:gap-8`}
       >
         <aside className="hidden xl:block min-w-0">
           <CustomerSidebar
@@ -392,7 +399,7 @@ export default function MenuPage() {
                   icon="image"
                 />
               ) : (
-                <div className="grid gap-4 md:gap-5 justify-start grid-cols-[repeat(auto-fill,minmax(160px,200px))] md:grid-cols-[repeat(auto-fill,minmax(190px,230px))]">
+                <div className={CATEGORY_GRID_CLS}>
                   {overviewCats.map((c) => (
                     <CategoryCard
                       key={c.id}
