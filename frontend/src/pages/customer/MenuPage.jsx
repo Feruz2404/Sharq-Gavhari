@@ -16,6 +16,12 @@ import { useT } from '../../locales/useT.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
+// Product grid class \u2014 1 column below 390px, 2 cols on phones \u2265390px,
+// 3 cols at md, 4 cols at xl. Kept in a constant so both the top-level and
+// the bar sub-section grids stay in sync.
+const PRODUCT_GRID_CLS =
+  'grid grid-cols-1 min-[390px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4';
+
 const heroFade = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
@@ -33,10 +39,6 @@ export default function MenuPage() {
   const settings = useSettingsStore((s) => s.settings);
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
-  // `cats` is the FULL flat list returned by the API (top-level + bar children).
-  // We derive top-level / bar children below \u2014 the sidebar and the
-  // category grid only ever see top-level entries, and the Bar drill-down
-  // sees only direct children of the bar parent.
   const [cats, setCats] = useState([]);
   const [prods, setProds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +47,6 @@ export default function MenuPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Modes:
-  //   'overview' \u2192 top-level category cards only
-  //   'products' \u2192 continuous product sections for top-level (non-bar) cats starting at startIdx
-  //   'bar'      \u2192 nested bar view: chip rail + product sections grouped by bar sub-category
   const [mode, setMode] = useState('overview');
   const [activeCatId, setActiveCatId] = useState(null);
   const [startIdx, setStartIdx] = useState(0);
@@ -79,12 +77,6 @@ export default function MenuPage() {
     if (!settings) fetchSettings();
   }, [settings, fetchSettings]);
 
-  // ---- Hierarchy derivation ----------------------------------------------
-  // The Bar parent (slug='bar', parent_id=null) is identified by slug so
-  // legacy DBs without parent_id still work \u2014 we then treat any category
-  // whose parent_id matches Bar's id as a bar child. As a safety net, any
-  // bar-* slug whose parent_id is missing is also treated as a bar child so
-  // unmigrated rows still get nested instead of leaking into the top level.
   const barCat = useMemo(
     () => cats.find((c) => c.slug === BAR_PARENT_SLUG) || null,
     [cats]
@@ -103,7 +95,6 @@ export default function MenuPage() {
     return cats.filter((c) => !childIds.has(c.id) && !c.parent_id);
   }, [cats, barChildren]);
 
-  // ---- Product grouping & counts -----------------------------------------
   const productsByCat = useMemo(() => {
     const map = {};
     for (const p of prods) {
@@ -113,8 +104,6 @@ export default function MenuPage() {
     return map;
   }, [prods]);
 
-  // Top-level counts, with the Bar tile rolling up its children's totals so
-  // the sidebar shows e.g. "Bar 110" instead of "Bar 0".
   const productCounts = useMemo(() => {
     const counts = {};
     for (const id of Object.keys(productsByCat)) {
@@ -128,7 +117,6 @@ export default function MenuPage() {
     return counts;
   }, [productsByCat, barCat, barChildren]);
 
-  // ---- Section list per mode ---------------------------------------------
   const visibleCats = useMemo(() => {
     if (mode === 'bar') return barChildren;
     if (mode === 'products') {
@@ -164,7 +152,6 @@ export default function MenuPage() {
     });
   }, [topLevelCats, q, lang]);
 
-  // ---- Scroll-spy for active section in 'products' & 'bar' modes ---------
   useEffect(() => {
     if ((mode !== 'products' && mode !== 'bar') || visibleSections.length === 0) return undefined;
     const observer = new IntersectionObserver(
@@ -187,7 +174,6 @@ export default function MenuPage() {
     return () => observer.disconnect();
   }, [mode, visibleSections]);
 
-  // ---- Mode transitions --------------------------------------------------
   const enterBarMode = () => {
     setMode('bar');
     setMobileNavOpen(false);
@@ -266,16 +252,12 @@ export default function MenuPage() {
   const restaurantName =
     (settings && (settings.restaurant_name || settings.name)) || 'Sharq Gavhari';
 
-  // Drawer breadcrumb resolves names from the FULL cats list so bar children
-  // still display correctly in the product detail drawer.
   const selectedProductCategoryName = useMemo(() => {
     if (!selectedProduct) return '';
     const cat = cats.find((c) => c.id === selectedProduct.category_id);
     return cat ? getLocalizedField(cat, 'name', lang) : '';
   }, [selectedProduct, cats, lang]);
 
-  // Sidebar always sees only the top-level list; in bar mode the Bar tile
-  // stays highlighted via activeCatId === barCat.id.
   const sidebarActiveId = mode === 'bar' && barCat ? barCat.id : activeCatId;
 
   const heroBg = settings && settings.background_image_url;
@@ -303,11 +285,15 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen text-white">
+      {/* Hamburger \u2014 absolute positioned, sits below the device notch via
+          safe-area padding. Kept off-flow so the hero text starts cleanly at
+          the top of the content column. */}
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label={t('nav.openMenu')}
-        className="lg:hidden fixed top-3 left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft"
+        className="lg:hidden fixed left-3 z-30 w-11 h-11 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white/90 hover:text-gold hover:border-gold/30 transition flex items-center justify-center shadow-soft"
+        style= top: 'max(12px, calc(env(safe-area-inset-top, 0px) + 8px))' 
       >
         <Icon name="menu" size={18} />
       </button>
@@ -324,7 +310,10 @@ export default function MenuPage() {
         onQueryChange={setQ}
       />
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-16 lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7">
+      <div
+        className="max-w-7xl mx-auto px-4 lg:px-6 lg:pt-8 pb-12 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7"
+        style= paddingTop: 'max(4rem, calc(env(safe-area-inset-top, 0px) + 4rem))' 
+      >
         <aside className="hidden lg:block min-w-0">
           <CustomerSidebar
             variant="fixed"
@@ -361,12 +350,12 @@ export default function MenuPage() {
             <MenuSkeleton />
           ) : mode === 'overview' ? (
             <section>
-              <div className="flex items-end justify-between mb-4">
-                <div>
+              <div className="flex items-end justify-between gap-3 mb-4 min-w-0">
+                <div className="min-w-0">
                   <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
                     {t('menu.categoriesTitle')}
                   </div>
-                  <h2 className="font-display text-xl md:text-2xl text-white/95 leading-tight">
+                  <h2 className="font-display text-xl md:text-2xl text-white/95 leading-tight truncate">
                     {t('menu.chooseCategory')}
                   </h2>
                 </div>
@@ -379,7 +368,7 @@ export default function MenuPage() {
                   icon="image"
                 />
               ) : (
-                <div className="grid gap-3 md:gap-4 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
+                <div className="grid gap-3 md:gap-4 grid-cols-[repeat(auto-fit,minmax(150px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
                   {overviewCats.map((c) => (
                     <CategoryCard
                       key={c.id}
@@ -407,11 +396,11 @@ export default function MenuPage() {
             />
           ) : (
             <>
-              <div className="mb-5 flex items-center gap-3">
+              <div className="mb-5 flex items-center gap-3 flex-wrap">
                 <button
                   type="button"
                   onClick={handleBackToOverview}
-                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] text-white/80 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition"
+                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] text-white/80 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition shrink-0"
                 >
                   <Icon name="back" size={14} className="transition group-hover:-translate-x-0.5" />
                   <span>{t('menu.backToCategories')}</span>
@@ -439,7 +428,7 @@ export default function MenuPage() {
                       ref={(el) => { sectionRefs.current[s.category.id] = el; }}
                       className="scroll-mt-24"
                     >
-                      <div className="flex items-end justify-between gap-3 mb-5">
+                      <div className="flex items-end justify-between gap-3 mb-5 min-w-0">
                         <div className="min-w-0">
                           <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
                             {t('menu.categoriesTitle')}
@@ -451,7 +440,7 @@ export default function MenuPage() {
                         </div>
                         <span className="text-white/45 text-sm tabular-nums shrink-0 mb-1">{s.products.length}</span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                      <div className={PRODUCT_GRID_CLS}>
                         {s.products.map((p) => (
                           <ProductCard key={p.id} product={p} onOpen={handleOpenProduct} />
                         ))}
@@ -493,8 +482,6 @@ function BarView({
 }) {
   const barName = getLocalizedField(barCat, 'name', lang) || 'Bar';
 
-  // Only render chips for sub-categories that actually have visible products
-  // after the search filter \u2014 keeps the rail tidy.
   const visibleChildIds = new Set(visibleSections.map((s) => s.category.id));
   const chipChildren = barChildren.filter((c) => visibleChildIds.has(c.id));
 
@@ -504,14 +491,13 @@ function BarView({
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] text-white/80 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition"
+          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] text-white/80 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition shrink-0"
         >
           <Icon name="back" size={14} className="transition group-hover:-translate-x-0.5" />
           <span>{t('menu.backToCategories')}</span>
         </button>
       </div>
 
-      {/* Bar header */}
       <div className="mb-6">
         <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
           {t('menu.categoriesTitle')}
@@ -520,7 +506,6 @@ function BarView({
         <div className="mt-2.5 h-px w-12 bg-gradient-to-r from-gold/85 via-gold/45 to-transparent" />
       </div>
 
-      {/* Sub-category chip rail. Horizontally scrollable on mobile, wraps on lg+. */}
       {chipChildren.length > 0 && (
         <div className="mb-7 -mx-4 lg:mx-0 px-4 lg:px-0 overflow-x-auto no-scrollbar">
           <div className="flex lg:flex-wrap gap-2 lg:gap-2.5 min-w-min">
@@ -580,7 +565,7 @@ function BarView({
               ref={(el) => { sectionRefs.current[s.category.id] = el; }}
               className="scroll-mt-24"
             >
-              <div className="flex items-end justify-between gap-3 mb-5">
+              <div className="flex items-end justify-between gap-3 mb-5 min-w-0">
                 <div className="min-w-0">
                   <div className="text-[10.5px] uppercase tracking-[0.28em] text-gold/70 mb-1">
                     {barName}
@@ -592,7 +577,7 @@ function BarView({
                 </div>
                 <span className="text-white/45 text-sm tabular-nums shrink-0 mb-1">{s.products.length}</span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+              <div className={PRODUCT_GRID_CLS}>
                 {s.products.map((p) => (
                   <ProductCard key={p.id} product={p} onOpen={onOpenProduct} />
                 ))}

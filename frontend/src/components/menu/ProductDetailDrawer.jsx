@@ -84,9 +84,6 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
   const weight = safeProduct ? safeProduct.weight : null;
   const prepTime = safeProduct ? safeProduct.preparation_time : null;
 
-  // Detail surfaces use the optimized full-size image (image_url) and never
-  // image_original_url. The helper falls back to legacy thumbnail_url and
-  // image_thumb_url for safety.
   const drawerImg = safeProduct ? detailImage(safeProduct) : null;
 
   const handleAdd = () => {
@@ -95,13 +92,22 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
     if (onClose) onClose();
   };
 
+  // Desktop = right-side drawer (\u2265 lg). Mobile = bottom sheet with
+  // 92dvh cap, 32px top corners, and safe-area-aware action bar.
   const panelClass = isDesktop
     ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[-24px_0_60px_-20px_rgba(0,0,0,0.7)]'
-    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[92vh] rounded-t-3xl bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl';
+    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[92dvh] rounded-t-[32px] bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden';
 
   const panelInitial = isDesktop ? desktopInitial : mobileInitial;
   const panelAnimate = isDesktop ? desktopAnimate : mobileAnimate;
   const panelExit = isDesktop ? desktopExit : mobileExit;
+
+  // Image height: on mobile we cap at ~38vh so the content + sticky action
+  // bar both fit naturally above the keyboard / safe area. On desktop the
+  // image keeps its 16:10 aspect ratio.
+  const imageWrapCls = isDesktop
+    ? 'relative aspect-[16/10] w-full overflow-hidden bg-white/[0.02]'
+    : 'relative w-full overflow-hidden bg-white/[0.02] h-[38vh] max-h-[320px] min-h-[220px]';
 
   return (
     <AnimatePresence>
@@ -127,17 +133,19 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
             exit={panelExit}
             transition={panelTransition}
           >
+            {/* Close button \u2014 44\u00d744 tap target, safe-area-aware on mobile. */}
             <button
               type="button"
               onClick={onClose}
               aria-label={t('common.close')}
-              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 hover:text-gold text-white/90 flex items-center justify-center border border-white/10 transition"
+              className="absolute right-3 z-10 w-11 h-11 rounded-full bg-black/70 hover:bg-black/90 hover:text-gold text-white/90 flex items-center justify-center border border-white/10 transition shadow-lg shadow-black/40"
+              style={isDesktop ? { top: '12px' } : { top: 'max(12px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
             >
-              <Icon name="close" size={14} />
+              <Icon name="close" size={16} />
             </button>
 
             <div className="overflow-y-auto flex-1">
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-white/[0.02]">
+              <div className={imageWrapCls}>
                 <ImageWithFallback
                   src={drawerImg}
                   alt={name}
@@ -228,13 +236,22 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
               </div>
             </div>
 
-            <div className="border-t border-white/10 p-4 md:p-5 flex items-center gap-3 bg-black/40">
+            {/* Sticky add-to-cart bar. Mobile gets safe-area inset so the
+                button never sits under the iOS home indicator. */}
+            <div
+              className="border-t border-white/10 px-4 pt-4 md:p-5 flex items-center gap-3 bg-black/55 backdrop-blur-xl"
+              style=
+                paddingBottom: isDesktop
+                  ? '1.25rem'
+                  : 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+              
+            >
               <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] shrink-0">
                 <button
                   type="button"
                   onClick={() => setQty((v) => Math.max(1, v - 1))}
                   aria-label={t('common.decrease') || 'minus'}
-                  className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold transition"
+                  className="w-10 h-10 flex items-center justify-center text-white/80 hover:text-gold transition"
                   disabled={qty <= 1}
                 >
                   <Icon name="minus" size={14} />
@@ -244,7 +261,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                   type="button"
                   onClick={() => setQty((v) => v + 1)}
                   aria-label={t('common.increase') || 'plus'}
-                  className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-gold transition"
+                  className="w-10 h-10 flex items-center justify-center text-white/80 hover:text-gold transition"
                 >
                   <Icon name="plus" size={14} />
                 </button>
@@ -253,7 +270,7 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                 type="button"
                 onClick={handleAdd}
                 disabled={unavailable}
-                className="btn-gold flex-1 justify-center whitespace-nowrap min-w-0"
+                className="btn-gold flex-1 justify-center whitespace-nowrap min-w-0 min-h-[44px]"
               >
                 <Icon name="plus" size={16} />
                 <span className="truncate">{t('common.addToCart')}</span>

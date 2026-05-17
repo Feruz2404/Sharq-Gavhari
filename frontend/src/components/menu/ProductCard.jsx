@@ -13,9 +13,10 @@ import { cardImage } from '../../lib/menuImage.js';
 const hover = { y: -4 };
 const cardTransition = { type: 'spring', stiffness: 320, damping: 24 };
 
-// `sizes` for the responsive thumbnail. Mirrors the grid: 2 cols on phones,
-// 3 cols on md, 4 cols on xl. Lets the browser pick the right asset.
-const CARD_SIZES = '(min-width: 1280px) 22vw, (min-width: 768px) 32vw, 48vw';
+// `sizes` for the responsive thumbnail. Mirrors the grid: 1 col below 390px,
+// 2 cols on phones, 3 cols on md, 4 cols on xl. Lets the browser pick the
+// right asset.
+const CARD_SIZES = '(min-width: 1280px) 22vw, (min-width: 768px) 32vw, (min-width: 390px) 48vw, 92vw';
 
 const FALLBACK_GRADIENT = (
   <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-amber-900/25 to-zinc-950 flex items-center justify-center">
@@ -73,7 +74,7 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
         )}
       </div>
       <div className="px-4 pt-3.5 pb-2">
-        <h3 className="font-display text-[15px] md:text-base text-white leading-tight line-clamp-1">
+        <h3 className="font-display text-[15px] md:text-base text-white leading-tight line-clamp-2 min-h-[2.5em]">
           {name}
         </h3>
         {desc ? (
@@ -85,13 +86,17 @@ function ProductCardImpl({ product, basePath = '/product', onOpen }) {
     </>
   );
 
+  // Footer: ALWAYS stacks on small viewports (below sm=640px) so the price
+  // and the add button cannot overlap. From sm+ they sit on the same row.
+  // hasDualPrice keeps stacked layout at every breakpoint because the dual
+  // price block is already two lines tall.
   const footerClass = hasDualPrice
     ? 'px-4 pb-4 mt-auto flex flex-col gap-2.5'
-    : 'px-4 pb-4 mt-auto flex items-center justify-between gap-2.5';
-  const priceWrapClass = hasDualPrice ? 'min-w-0' : 'min-w-0 flex-1';
+    : 'px-4 pb-4 mt-auto flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:justify-between';
+  const priceWrapClass = hasDualPrice ? 'min-w-0' : 'min-w-0 sm:flex-1';
   const buttonClass = hasDualPrice
-    ? 'btn-gold !py-2 !px-3 text-[13px] !rounded-lg w-full justify-center shrink-0 whitespace-nowrap'
-    : 'btn-gold !py-1.5 !px-3 text-[13px] !rounded-lg shrink-0 whitespace-nowrap';
+    ? 'btn-gold !py-2 !px-3 text-[13px] !rounded-xl w-full justify-center shrink-0 whitespace-nowrap min-h-[40px]'
+    : 'btn-gold !py-2 !px-3 text-[13px] !rounded-xl w-full sm:w-auto justify-center shrink-0 whitespace-nowrap min-h-[40px]';
 
   return (
     <motion.div
