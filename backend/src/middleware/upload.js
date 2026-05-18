@@ -1,10 +1,14 @@
 const multer = require('multer');
 
 // Maximum upload size in megabytes. Override with MAX_UPLOAD_MB on the
-// backend service to allow even larger high-quality images. Default is 15MB
-// so that admins can upload high-resolution restaurant photography for the
-// global app background without manual env tweaking.
-const MAX_MB = Number(process.env.MAX_UPLOAD_MB || 15);
+// backend service if needed.
+//
+// Default is 50 MB: the admin UI allows high-quality originals up to 50 MB,
+// and the frontend (frontend/src/lib/imageCompression.js) compresses every
+// selected image down to <= 2 MB before it is sent to this endpoint. The
+// generous server-side default ensures that even an unlikely uncompressed
+// fallback never trips a stale "Image is too large" error.
+const MAX_MB = Number(process.env.MAX_UPLOAD_MB || 50);
 const ALLOWED = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
 const upload = multer({

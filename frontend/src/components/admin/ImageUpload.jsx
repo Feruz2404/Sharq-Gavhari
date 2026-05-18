@@ -3,17 +3,32 @@ import ImageWithFallback from '../common/ImageWithFallback.jsx';
 import Icon from '../common/Icon.jsx';
 import { uploadService } from '../../services/uploadService.js';
 import { useToast } from '../common/Toast.jsx';
+import {
+  compressProductImage,
+  ERR_TOO_LARGE,
+  ERR_UNSUPPORTED,
+  ERR_UPLOAD_FAILED,
+} from '../../lib/imageCompression.js';
 
+// Map raw upload errors to user-facing Uzbek strings.
+//
+// The legacy multipart endpoint also returns its own error codes
+// (IMAGE_TOO_LARGE / UNSUPPORTED_FILE_TYPE). The frontend now ALWAYS
+// compresses to <= 2 MB before uploading, so IMAGE_TOO_LARGE from the
+// backend should never actually fire \u2014 but if it ever does (e.g. a
+// browser without web-workers fell back to the original bytes), we still
+// want a clean Uzbek toast instead of leaking the English server message.
 function friendlyError(err) {
   const status = err && err.response && err.response.status;
   const apiMsg = err && err.response && err.response.data && err.response.data.error;
   const code = err && err.response && err.response.data && err.response.data.code;
-  if (code === 'IMAGE_TOO_LARGE') return apiMsg || 'Image is too large.';
-  if (code === 'UNSUPPORTED_FILE_TYPE') return apiMsg || 'Unsupported file type.';
+  if (code === 'IMAGE_TOO_LARGE') return ERR_TOO_LARGE;
+  if (code === 'UNSUPPORTED_FILE_TYPE') return ERR_UNSUPPORTED;
   if (apiMsg && /bucket/i.test(apiMsg)) return apiMsg;
   if (status === 401 || status === 403) return 'Not authorized \u2014 please log in again.';
-  if (status === 413) return apiMsg || 'Image too large.';
-  return apiMsg || (err && err.message) || 'Upload failed';
+  if (status === 413) return ERR_TOO_LARGE;
+  if (apiMsg && /image is too large/i.test(apiMsg)) return ERR_TOO_LARGE;
+  return ERR_UPLOAD_FAILED;
 }
 
 /**
@@ -69,10 +84,30 @@ export default function ImageUpload({
 
   const upload = async (file) => {
     if (!file) return;
-    if (!/^image\//.test(file.type)) { setErr('Please select an image file'); return; }
+    if (!/^image\//.test(file.type)) {
+      const msg = ERR_UNSUPPORTED;
+      setErr(msg);
+      toast.error(msg);
+      return;
+    }
     setBusy(true); setErr('');
+    let toSend = file;
+    // Client-side validation + compression. The compressor itself enforces
+    // the 50 MB cap on the ORIGINAL file and downscales everything else to
+    // <= 2 MB / <= 1600 px so the backend / Supabase never sees the
+    // original bytes.
     try {
-      const res = await uploadService.upload(file, bucket, folder);
+      const compressed = await compressProductImage(file);
+      if (compressed) toSend = compressed;
+    } catch (compErr) {
+      const msg = (compErr && compErr.message) || ERR_UPLOAD_FAILED;
+      setBusy(false);
+      setErr(msg);
+      toast.error(msg);
+      return;
+    }
+    try {
+      const res = await uploadService.upload(toSend, bucket, folder);
       // Prefer richer payload via `onUpload` so the parent can persist both
       // `image_url` and `thumbnail_url`. Always also call `onChange(url)` so
       // simple consumers (settings, etc.) keep working unchanged.
