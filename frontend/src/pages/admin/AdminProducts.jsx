@@ -17,6 +17,8 @@ const GLASS_FIELD =
   'text-sm text-white shadow-lg shadow-black/15 ' +
   'focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/25 transition';
 
+const IS_DEV = !!(import.meta && import.meta.env && import.meta.env.DEV);
+
 // Extract a user-facing message from an axios/HTTP error. Prefers the
 // backend `details` field (set by products.controller.dbError), then
 // `error`, then the axios message, then a generic fallback. Logging the
@@ -28,7 +30,7 @@ function apiErrorMessage(err, fallback) {
     (err && err.message) ||
     fallback ||
     'Xatolik yuz berdi';
-  if (import.meta && import.meta.env && import.meta.env.DEV) {
+  if (IS_DEV) {
     // eslint-disable-next-line no-console
     console.error('[admin/products]', fallback || 'API error', err);
   }
@@ -172,17 +174,50 @@ export default function AdminProducts() {
     });
   useEffect(() => { reload(); }, []);
 
-  // onSave now ALWAYS surfaces the outcome to the admin via a toast. The
-  // previous try/finally without a catch swallowed Supabase "column does
-  // not exist" errors and made Saqlash look like a no-op.
+  // onSave now ALWAYS surfaces the outcome to the admin via a toast AND
+  // does an optimistic local state splice from the API response.
+  //
+  // The optimistic splice matters for Ikkinchi-taomlar (and any category)
+  // because the public /api/products list response carries a short SWR
+  // cache. Without the splice, the admin's own follow-up GET could come
+  // back stale from the edge / browser cache and the just-saved row would
+  // appear unchanged \u2014 indistinguishable from "save was lost". The
+  // backend now also sends `private, no-store` for authenticated reads,
+  // but the splice gives us a belt-and-braces guarantee.
   const onSave = async (data) => {
     const wasEditing = Boolean(editing);
+    const editingId = editing && editing.id;
+    if (IS_DEV) {
+      // eslint-disable-next-line no-console
+      console.log('[admin/products] save', {
+        mode: wasEditing ? 'PUT' : 'POST',
+        id: editingId,
+        category_id: data && data.category_id,
+        payload: data,
+      });
+    }
     setBusy(true);
     try {
-      if (wasEditing) await productService.update(editing.id, data);
-      else            await productService.create(data);
+      const saved = wasEditing
+        ? await productService.update(editingId, data)
+        : await productService.create(data);
+
+      // Optimistic local state update: splice the API response into the
+      // existing list BEFORE the follow-up reload(). Match by product.id
+      // (never by index, never by name, never by category).
+      if (saved && saved.id) {
+        setList((prev) => {
+          if (wasEditing) {
+            return prev.map((p) => (p.id === saved.id ? { ...p, ...saved } : p));
+          }
+          return [saved, ...prev];
+        });
+      }
+
       setEditing(null); setCreating(false);
-      await reload();
+      // Background revalidation. If the cache serves a stale list, the
+      // optimistic splice above keeps the admin UI correct.
+      reload().catch(() => { /* non-blocking */ });
       toast.success(
         wasEditing ? 'Mahsulot saqlandi' : 'Mahsulot qo\u2018shildi'
       );
@@ -196,10 +231,14 @@ export default function AdminProducts() {
 
   const onDelete = async () => {
     if (!confirmDel) return;
+    const removedId = confirmDel.id;
     try {
-      await productService.remove(confirmDel.id);
+      await productService.remove(removedId);
       setConfirmDel(null);
-      await reload();
+      // Optimistic removal so the row disappears immediately even if the
+      // /api/products GET response is briefly cached.
+      setList((prev) => prev.filter((p) => p.id !== removedId));
+      reload().catch(() => { /* non-blocking */ });
       toast.success('Mahsulot o\u2018chirildi');
     } catch (err) {
       const msg = apiErrorMessage(err, 'Mahsulotni o\u2018chirishda xatolik');
@@ -240,12 +279,16 @@ export default function AdminProducts() {
   const emptyMessage =
     isFiltering && list.length > 0 ? 'Mahsulot topilmadi' : t('common.empty');
 
-  // Inline toggle handlers (availability + active). Now wrapped so a 500
-  // from the API surfaces as a toast instead of disappearing.
+  // Inline toggle handlers (availability + active). Wrapped so a 500 from
+  // the API surfaces as a toast, and the splice keeps the row visually in
+  // sync immediately.
   const handleToggleAvailable = async (row, v) => {
     try {
-      await productService.setAvailability(row.id, v);
-      await reload();
+      const saved = await productService.setAvailability(row.id, v);
+      if (saved && saved.id) {
+        setList((prev) => prev.map((p) => (p.id === saved.id ? { ...p, ...saved } : p)));
+      }
+      reload().catch(() => { /* non-blocking */ });
     } catch (err) {
       const msg = apiErrorMessage(err, 'Holatni o\u2018zgartirishda xatolik');
       toast.error(msg);
@@ -255,8 +298,11 @@ export default function AdminProducts() {
 
   const handleToggleActive = async (row, v) => {
     try {
-      await productService.setActive(row.id, v);
-      await reload();
+      const saved = await productService.setActive(row.id, v);
+      if (saved && saved.id) {
+        setList((prev) => prev.map((p) => (p.id === saved.id ? { ...p, ...saved } : p)));
+      }
+      reload().catch(() => { /* non-blocking */ });
     } catch (err) {
       const msg = apiErrorMessage(err, 'Holatni o\u2018zgartirishda xatolik');
       toast.error(msg);

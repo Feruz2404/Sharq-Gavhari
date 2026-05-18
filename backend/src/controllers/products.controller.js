@@ -2,8 +2,12 @@ const { supabase } = require('../config/supabase');
 
 // Public read endpoints set short, conservative cache headers so Vercel /
 // browser caches can absorb repeat requests during a session without
-// stale data getting stuck for long. Admin write endpoints stay uncached.
+// stale data getting stuck for long. Admin write endpoints stay uncached,
+// and authenticated reads ALSO bypass the public cache (see
+// `applyReadCache` below) so an admin never gets a stale snapshot of
+// their own just-written product back from the edge.
 const PUBLIC_CACHE = 'public, max-age=60, stale-while-revalidate=300';
+const PRIVATE_NO_CACHE = 'private, no-store, max-age=0';
 
 // Public-safe column projection. Keeps payload small and prevents future
 // internal columns from leaking through `select("*")`.
@@ -52,26 +56,65 @@ function pickWritable(body) {
   return out;
 }
 
+// Cache policy for read endpoints:
+//   - Authenticated callers (any request bearing an Authorization header)
+//     get `private, no-store` so the admin panel ALWAYS sees the freshest
+//     row right after their own PUT / PATCH / DELETE. This is the fix for
+//     "Saqlash bosgandan keyin o'zgarish ko'rinmayapti" symptoms that
+//     turned out to be the 60-second public cache returning the pre-save
+//     snapshot.
+//   - Anonymous callers (public /menu) keep the 60s SWR cache so the
+//     customer menu remains snappy.
+function applyReadCache(req, res) {
+  const hasAuth = !!(req && req.headers && req.headers.authorization);
+  res.set('Cache-Control', hasAuth ? PRIVATE_NO_CACHE : PUBLIC_CACHE);
+}
+
+const isDev = process.env.NODE_ENV !== 'production';
+function devLog(...args) {
+  if (isDev) {
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  }
+}
+
+// Surface Supabase / Postgres errors as structured JSON the admin UI can
+// parse + toast. 23505 (unique_violation) is mapped to a friendly Uzbek
+// message because the only product unique index is
+// (name_ru, category_id) and the admin needs to understand they typed a
+// duplicate name within the same category.
 function dbError(res, e, fallback) {
-  const msg = (e && e.message) || fallback || 'Database error';
-  const details = e && e.details ? e.details : msg;
-  const hint = e && e.hint ? e.hint : undefined;
   const code = e && e.code ? e.code : undefined;
+  const isUniqueViolation = code === '23505';
+  const isFkViolation = code === '23503';
+  const msg = (e && e.message) || fallback || 'Database error';
+  const details = isUniqueViolation
+    ? 'Bunday nomli mahsulot bu kategoriyada allaqachon mavjud'
+    : isFkViolation
+      ? 'Tanlangan kategoriya mavjud emas yoki o\u2018chirilgan'
+      : (e && e.details ? e.details : msg);
+  const hint = e && e.hint ? e.hint : undefined;
   console.error('[products] db error', { msg, details, hint, code });
-  return res.status(500).json({
-    error: fallback || msg,
+  const status = isUniqueViolation ? 409 : (isFkViolation ? 400 : 500);
+  const userError = isUniqueViolation
+    ? 'Duplicate product'
+    : isFkViolation
+      ? 'Invalid category reference'
+      : (fallback || msg);
+  return res.status(status).json({
+    error: userError,
     details,
     code,
     hint,
   });
 }
 
-exports.list = async (_req, res, next) => {
+exports.list = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('products').select(PUBLIC_COLUMNS).order('updated_at', { ascending: false });
     if (error) throw error;
-    res.set('Cache-Control', PUBLIC_CACHE);
+    applyReadCache(req, res);
     res.json(data);
   } catch (e) { next(e); }
 };
@@ -82,7 +125,7 @@ exports.byCategory = async (req, res, next) => {
     const { data, error } = await supabase
       .from('products').select(PUBLIC_COLUMNS).eq('category_id', categoryId).order('updated_at', { ascending: false });
     if (error) throw error;
-    res.set('Cache-Control', PUBLIC_CACHE);
+    applyReadCache(req, res);
     res.json(data);
   } catch (e) { next(e); }
 };
@@ -92,7 +135,7 @@ exports.getOne = async (req, res, next) => {
     const { data, error } = await supabase.from('products').select('*').eq('id', req.params.id).maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: 'Product not found' });
-    res.set('Cache-Control', PUBLIC_CACHE);
+    applyReadCache(req, res);
     res.json(data);
   } catch (e) { next(e); }
 };
@@ -100,6 +143,7 @@ exports.getOne = async (req, res, next) => {
 exports.create = async (req, res) => {
   try {
     const body = pickWritable(req.body || {});
+    devLog('[products] POST', { body });
     if (!body.name_uz || !body.name_ru || !body.name_en) {
       return res.status(400).json({
         error: 'name_uz, name_ru, name_en are required',
@@ -124,6 +168,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const body = pickWritable(req.body || {});
+    devLog('[products] PUT', { id: req.params.id, body });
     if (Object.keys(body).length === 0) {
       return res.status(400).json({
         error: 'No editable fields provided',
@@ -135,7 +180,7 @@ exports.update = async (req, res) => {
     if (error) return dbError(res, error, 'Failed to update product');
     if (!data) {
       return res.status(404).json({
-        error: 'Product not found',
+        error: 'Product not found or not updated',
         details: 'No product matched id ' + req.params.id + '.',
       });
     }
@@ -148,8 +193,9 @@ exports.update = async (req, res) => {
 exports.setAvailability = async (req, res) => {
   try {
     const { is_available } = req.body || {};
-    const { data, error } = await supabase.from('products').update({ is_available: !!is_available }).eq('id', req.params.id).select().single();
+    const { data, error } = await supabase.from('products').update({ is_available: !!is_available }).eq('id', req.params.id).select().maybeSingle();
     if (error) return dbError(res, error, 'Failed to update availability');
+    if (!data) return res.status(404).json({ error: 'Product not found', details: 'No product matched id ' + req.params.id + '.' });
     res.json(data);
   } catch (e) { return dbError(res, e, 'Failed to update availability'); }
 };
@@ -157,8 +203,9 @@ exports.setAvailability = async (req, res) => {
 exports.setActive = async (req, res) => {
   try {
     const { is_active } = req.body || {};
-    const { data, error } = await supabase.from('products').update({ is_active: !!is_active }).eq('id', req.params.id).select().single();
+    const { data, error } = await supabase.from('products').update({ is_active: !!is_active }).eq('id', req.params.id).select().maybeSingle();
     if (error) return dbError(res, error, 'Failed to update active flag');
+    if (!data) return res.status(404).json({ error: 'Product not found', details: 'No product matched id ' + req.params.id + '.' });
     res.json(data);
   } catch (e) { return dbError(res, e, 'Failed to update active flag'); }
 };

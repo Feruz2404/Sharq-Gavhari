@@ -4,6 +4,7 @@ import ImageUploader from '../../features/media/ImageUploader.jsx';
 import ToggleSwitch from './ToggleSwitch.jsx';
 import Select from './Select.jsx';
 import { useT } from '../../locales/useT.js';
+import { useToast } from '../common/Toast.jsx';
 import { useLanguageStore } from '../../stores/languageStore.js';
 
 // Localized helper text shown under the upload dropzone. Keeps wording in
@@ -15,8 +16,11 @@ const UPLOAD_HINT = {
   en: 'High-quality images up to 50 MB are supported. The system automatically generates a smaller WebP for menu cards.',
 };
 
+const IS_DEV = !!(import.meta && import.meta.env && import.meta.env.DEV);
+
 export default function ProductForm({ initial = {}, categories = [], onSubmit, onCancel, submitting }) {
   const t = useT();
+  const toast = useToast();
   const lang = useLanguageStore((s) => s.language);
   const [f, setF] = useState({
     category_id: '',
@@ -77,17 +81,25 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
     v === '' || v == null ? null : Number(v);
 
   // Build the submit payload from an EXPLICIT whitelist of product columns
-  // instead of spreading the full form state. This is the fix for the
-  // "Saqlash doesn't save" bug: previously `{ ...f }` carried server-managed
-  // (id / updated_at) and media-pipeline columns (image_thumb_url,
-  // image_original_url, image_object_path) into the PUT/POST body, which
-  // made Supabase reject the request with a schema-cache error and the
-  // frontend silently swallowed it. Keep this list in sync with the
+  // instead of spreading the full form state. This avoids carrying
+  // server-managed (id / updated_at) and media-pipeline columns into the
+  // PUT/POST body \u2014 Supabase would otherwise reject the whole request
+  // with a schema-cache error and the previous silent catch made it look
+  // like Saqlash had no effect. Keep this list in sync with the
   // PRODUCT_WRITABLE set in backend/src/controllers/products.controller.js.
   const submit = (e) => {
     e.preventDefault();
     setTouched(true);
-    if (!f.category_id) return;
+
+    // Explicit, NON-silent category guard. The previous early `return` was
+    // a silent no-op that left the admin staring at an unchanged row after
+    // clicking Saqlash \u2014 this was particularly easy to hit on a row
+    // whose category had been deleted and recreated (FK is ON DELETE SET
+    // NULL, which nulls out product.category_id).
+    if (!f.category_id) {
+      toast.error('Kategoriya tanlanishi shart');
+      return;
+    }
 
     const payload = {
       category_id: f.category_id,
@@ -114,6 +126,16 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
     if (f.sort_order != null && f.sort_order !== '') {
       payload.sort_order = Number(f.sort_order);
     }
+
+    if (IS_DEV) {
+      // eslint-disable-next-line no-console
+      console.log('[ProductForm] submit', {
+        editing_id: f.id,
+        category_id: payload.category_id,
+        payload,
+      });
+    }
+
     onSubmit(payload);
   };
 
