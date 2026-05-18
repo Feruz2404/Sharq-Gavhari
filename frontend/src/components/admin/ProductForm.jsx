@@ -71,27 +71,50 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
   const noCategories = categories.length === 0;
   const categoryInvalid = touched && !f.category_id;
 
+  // Coerce a form value to a numeric column value or null for nullable
+  // numeric columns (discount_price, secondary_price).
+  const numOrNull = (v) =>
+    v === '' || v == null ? null : Number(v);
+
+  // Build the submit payload from an EXPLICIT whitelist of product columns
+  // instead of spreading the full form state. This is the fix for the
+  // "Saqlash doesn't save" bug: previously `{ ...f }` carried server-managed
+  // (id / updated_at) and media-pipeline columns (image_thumb_url,
+  // image_original_url, image_object_path) into the PUT/POST body, which
+  // made Supabase reject the request with a schema-cache error and the
+  // frontend silently swallowed it. Keep this list in sync with the
+  // PRODUCT_WRITABLE set in backend/src/controllers/products.controller.js.
   const submit = (e) => {
     e.preventDefault();
     setTouched(true);
     if (!f.category_id) return;
-    onSubmit({
-      ...f,
-      thumbnail_url:
-        f.thumbnail_url ||
-        f.image_thumb_url ||
-        (f.image_url ? f.image_url : '') ||
-        null,
+
+    const payload = {
+      category_id: f.category_id,
+      name_uz: f.name_uz || '',
+      name_ru: f.name_ru || '',
+      name_en: f.name_en || '',
+      description_uz: f.description_uz || '',
+      description_ru: f.description_ru || '',
+      description_en: f.description_en || '',
+      ingredients_uz: f.ingredients_uz || '',
+      ingredients_ru: f.ingredients_ru || '',
+      ingredients_en: f.ingredients_en || '',
       price: Number(f.price || 0),
-      discount_price:
-        f.discount_price === '' || f.discount_price == null
-          ? null
-          : Number(f.discount_price),
-      secondary_price:
-        f.secondary_price === '' || f.secondary_price == null
-          ? null
-          : Number(f.secondary_price),
-    });
+      discount_price: numOrNull(f.discount_price),
+      secondary_price: numOrNull(f.secondary_price),
+      image_url: f.image_url || '',
+      thumbnail_url:
+        f.thumbnail_url || f.image_thumb_url || f.image_url || '',
+      weight: f.weight || '',
+      preparation_time: f.preparation_time || '',
+      is_available: !!f.is_available,
+      is_active: !!f.is_active,
+    };
+    if (f.sort_order != null && f.sort_order !== '') {
+      payload.sort_order = Number(f.sort_order);
+    }
+    onSubmit(payload);
   };
 
   const isEditing = Boolean(f.id);

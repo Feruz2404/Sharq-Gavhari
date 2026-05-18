@@ -4,6 +4,7 @@ import ProductForm from '../../components/admin/ProductForm.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import ImageWithFallback from '../../components/common/ImageWithFallback.jsx';
 import ToggleSwitch from '../../components/admin/ToggleSwitch.jsx';
+import { useToast } from '../../components/common/Toast.jsx';
 import { productService } from '../../services/productService.js';
 import { categoryService } from '../../services/categoryService.js';
 import { useT } from '../../locales/useT.js';
@@ -15,6 +16,24 @@ const GLASS_FIELD =
   'h-11 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-2xl ' +
   'text-sm text-white shadow-lg shadow-black/15 ' +
   'focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/25 transition';
+
+// Extract a user-facing message from an axios/HTTP error. Prefers the
+// backend `details` field (set by products.controller.dbError), then
+// `error`, then the axios message, then a generic fallback. Logging the
+// raw exception is gated to dev so the production console stays clean.
+function apiErrorMessage(err, fallback) {
+  const data = err && err.response && err.response.data;
+  const apiMsg =
+    (data && (data.details || data.error)) ||
+    (err && err.message) ||
+    fallback ||
+    'Xatolik yuz berdi';
+  if (import.meta && import.meta.env && import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.error('[admin/products]', fallback || 'API error', err);
+  }
+  return apiMsg;
+}
 
 // Custom dark-glass dropdown for the category filter. Replaces the native
 // <select> (whose popup is an opaque OS-level overlay that breaks the
@@ -134,6 +153,7 @@ function DropdownOption({ selected, onClick, label }) {
 
 export default function AdminProducts() {
   const t = useT();
+  const toast = useToast();
   const [list, setList] = useState([]);
   const [cats, setCats] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -152,21 +172,39 @@ export default function AdminProducts() {
     });
   useEffect(() => { reload(); }, []);
 
+  // onSave now ALWAYS surfaces the outcome to the admin via a toast. The
+  // previous try/finally without a catch swallowed Supabase "column does
+  // not exist" errors and made Saqlash look like a no-op.
   const onSave = async (data) => {
+    const wasEditing = Boolean(editing);
     setBusy(true);
     try {
-      if (editing) await productService.update(editing.id, data);
-      else         await productService.create(data);
+      if (wasEditing) await productService.update(editing.id, data);
+      else            await productService.create(data);
       setEditing(null); setCreating(false);
       await reload();
-    } finally { setBusy(false); }
+      toast.success(
+        wasEditing ? 'Mahsulot saqlandi' : 'Mahsulot qo\u2018shildi'
+      );
+    } catch (err) {
+      const msg = apiErrorMessage(err, 'Mahsulotni saqlashda xatolik');
+      toast.error('Mahsulotni saqlashda xatolik: ' + msg);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onDelete = async () => {
     if (!confirmDel) return;
-    await productService.remove(confirmDel.id);
-    setConfirmDel(null);
-    reload();
+    try {
+      await productService.remove(confirmDel.id);
+      setConfirmDel(null);
+      await reload();
+      toast.success('Mahsulot o\u2018chirildi');
+    } catch (err) {
+      const msg = apiErrorMessage(err, 'Mahsulotni o\u2018chirishda xatolik');
+      toast.error(msg);
+    }
   };
 
   // Quick lookup: category id -> human-readable name (across all locales),
@@ -202,6 +240,30 @@ export default function AdminProducts() {
   const emptyMessage =
     isFiltering && list.length > 0 ? 'Mahsulot topilmadi' : t('common.empty');
 
+  // Inline toggle handlers (availability + active). Now wrapped so a 500
+  // from the API surfaces as a toast instead of disappearing.
+  const handleToggleAvailable = async (row, v) => {
+    try {
+      await productService.setAvailability(row.id, v);
+      await reload();
+    } catch (err) {
+      const msg = apiErrorMessage(err, 'Holatni o\u2018zgartirishda xatolik');
+      toast.error(msg);
+      await reload();
+    }
+  };
+
+  const handleToggleActive = async (row, v) => {
+    try {
+      await productService.setActive(row.id, v);
+      await reload();
+    } catch (err) {
+      const msg = apiErrorMessage(err, 'Holatni o\u2018zgartirishda xatolik');
+      toast.error(msg);
+      await reload();
+    }
+  };
+
   const cols = [
     {
       key: 'image',
@@ -220,10 +282,10 @@ export default function AdminProducts() {
     { key: 'category', label: t('admin.categories'), render: (r) => cats.find((c) => c.id === r.category_id)?.name_uz || '\u2014' },
     { key: 'price', label: t('admin.price'), render: (r) => formatPrice(r.discount_price ?? r.price) },
     { key: 'is_available', label: t('admin.isAvailable'), render: (r) => (
-      <ToggleSwitch checked={r.is_available} onChange={async (v) => { await productService.setAvailability(r.id, v); reload(); }} />
+      <ToggleSwitch checked={r.is_available} onChange={(v) => handleToggleAvailable(r, v)} />
     ) },
     { key: 'is_active', label: t('admin.isActive'), render: (r) => (
-      <ToggleSwitch checked={r.is_active} onChange={async (v) => { await productService.setActive(r.id, v); reload(); }} />
+      <ToggleSwitch checked={r.is_active} onChange={(v) => handleToggleActive(r, v)} />
     ) },
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-2 justify-end whitespace-nowrap">
