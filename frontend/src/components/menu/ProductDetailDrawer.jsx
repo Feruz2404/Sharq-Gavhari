@@ -24,7 +24,10 @@ const mobileExit = { y: '100%' };
 
 const panelTransition = { type: 'spring', stiffness: 320, damping: 32 };
 
-const DRAWER_SIZES = '(min-width: 1024px) 480px, 100vw';
+// Drawer is up to 640px wide on xl, ~620px on lg, full-width on mobile.
+// Keep this in sync with the panel width classes below so the browser
+// picks the right srcSet entry on each viewport.
+const DRAWER_SIZES = '(min-width: 1280px) 640px, (min-width: 1024px) 620px, 100vw';
 
 // Safe-area-aware Tailwind arbitrary value. On mobile we want
 // padding-bottom = env(safe-area-inset-bottom) + 16px so the action bar
@@ -100,20 +103,28 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
     if (onClose) onClose();
   };
 
-  // Desktop = right-side drawer (>= lg). Mobile = bottom sheet capped at
-  // 92dvh with a 32px top corner radius and a safe-area-aware action bar.
+  // Desktop = right-side drawer (>= lg). Wider on lg/xl so the hero image
+  // can breathe and the layout feels premium instead of a tiny preview.
+  // Mobile = bottom sheet capped at 94dvh with a 32px top corner radius
+  // and a safe-area-aware action bar.
   const panelClass = isDesktop
-    ? 'fixed top-0 right-0 bottom-0 w-full max-w-[480px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[-24px_0_60px_-20px_rgba(0,0,0,0.7)]'
-    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[92dvh] rounded-t-[32px] bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden';
+    ? 'fixed top-0 right-0 bottom-0 w-full lg:w-[620px] xl:w-[640px] max-w-[640px] z-50 flex flex-col bg-[#0B0B0B]/95 backdrop-blur-xl border-l border-white/10 shadow-[-24px_0_60px_-20px_rgba(0,0,0,0.7)]'
+    : 'fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[94dvh] rounded-t-[32px] bg-[#0B0B0B]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden';
 
   const panelInitial = isDesktop ? desktopInitial : mobileInitial;
   const panelAnimate = isDesktop ? desktopAnimate : mobileAnimate;
   const panelExit = isDesktop ? desktopExit : mobileExit;
 
-  // Image: mobile caps the hero around 38vh so content + action bar always fit.
+  // Hero image sizing.
+  //  * Desktop / iPad landscape (>= lg): 42vh, clamped 320..460px so a tall
+  //    monitor doesn't waste the whole drawer on the photo and a short
+  //    laptop screen still gets a premium hero.
+  //  * Mobile / iPad portrait (< lg): 36dvh, clamped 260..380px so the title,
+  //    description and sticky add-to-cart bar always remain visible without
+  //    scrolling on common phones.
   const imageWrapCls = isDesktop
-    ? 'relative aspect-[16/10] w-full overflow-hidden bg-white/[0.02]'
-    : 'relative w-full overflow-hidden bg-white/[0.02] h-[38vh] max-h-[320px] min-h-[220px]';
+    ? 'relative w-full overflow-hidden bg-white/[0.02] h-[42vh] min-h-[320px] max-h-[460px]'
+    : 'relative w-full overflow-hidden bg-white/[0.02] h-[36dvh] min-h-[260px] max-h-[380px]';
 
   const closeTopCls = isDesktop ? 'top-3' : CLOSE_TOP_CLS;
 
@@ -159,9 +170,12 @@ export default function ProductDetailDrawer({ product, categoryName, open, onClo
                   fallback={FALLBACK_GRADIENT}
                   eager
                   sizes={DRAWER_SIZES}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-center"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent pointer-events-none" />
+                {/* Subtle bottom-only gradient — keeps the food crisp and
+                    full-colour while still giving the title below a soft
+                    transition from image to dark panel. */}
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
                 {!isDesktop && (
                   <div
                     aria-hidden="true"
