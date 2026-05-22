@@ -49,9 +49,9 @@ export default function AdminCategories() {
         />
       ),
     },
-    { key: 'name_uz', label: 'Name (UZ)' },
-    { key: 'name_ru', label: 'Name (RU)' },
-    { key: 'slug', label: 'Slug' },
+    { key: 'name_uz', label: t('admin.categoryForm.nameUz') },
+    { key: 'name_ru', label: t('admin.categoryForm.nameRu') },
+    { key: 'slug', label: t('admin.categoryForm.slug') },
     { key: 'sort_order', label: t('admin.sortOrder') },
     { key: 'is_active', label: t('admin.isActive'), render: (r) => r.is_active ? '\u2713' : '\u2014' },
     { key: 'actions', label: '', render: (r) => (
@@ -65,7 +65,7 @@ export default function AdminCategories() {
   return (
     <div className="grid gap-4 min-w-0">
       {/* flex-wrap + min-w-0 + shrink-0 mirror AdminProducts so the header
-          never pushes the "+ Qo'shish" button outside the content frame on
+          never pushes the "+ Add" button outside the content frame on
           tablet widths. */}
       <div className="flex items-center justify-between flex-wrap gap-2 min-w-0">
         <h1 className="font-display text-2xl gold-text truncate min-w-0">{t('admin.categories')}</h1>
@@ -87,7 +87,12 @@ export default function AdminCategories() {
       <div className="min-w-0">
         <DataTable columns={cols} rows={list} empty={t('common.empty')} />
       </div>
-      <ConfirmDialog open={!!confirmDel} onCancel={() => setConfirmDel(null)} onConfirm={onDelete} title={`Delete category?`} />
+      <ConfirmDialog
+        open={!!confirmDel}
+        onCancel={() => setConfirmDel(null)}
+        onConfirm={onDelete}
+        title={t('admin.categoriesPage.deleteConfirmTitle')}
+      />
     </div>
   );
 }

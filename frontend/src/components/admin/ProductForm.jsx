@@ -39,7 +39,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
   const set = (k) => (e) =>
     setF((prev) => ({ ...prev, [k]: e && e.target ? e.target.value : e }));
 
-  // Legacy ImageUpload (used while the row is still being CREATED \u2014 the
+  // Legacy ImageUpload (used while the row is still being CREATED — the
   // new /api/media pipeline keys files by entity id, which doesn't exist
   // yet). Persists the legacy { image_url, thumbnail_url } shape.
   const handleLegacyUpload = (res) => {
@@ -83,21 +83,16 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
   // Build the submit payload from an EXPLICIT whitelist of product columns
   // instead of spreading the full form state. This avoids carrying
   // server-managed (id / updated_at) and media-pipeline columns into the
-  // PUT/POST body \u2014 Supabase would otherwise reject the whole request
+  // PUT/POST body — Supabase would otherwise reject the whole request
   // with a schema-cache error and the previous silent catch made it look
-  // like Saqlash had no effect. Keep this list in sync with the
-  // PRODUCT_WRITABLE set in backend/src/controllers/products.controller.js.
+  // like Save had no effect.
   const submit = (e) => {
     e.preventDefault();
     setTouched(true);
 
-    // Explicit, NON-silent category guard. The previous early `return` was
-    // a silent no-op that left the admin staring at an unchanged row after
-    // clicking Saqlash \u2014 this was particularly easy to hit on a row
-    // whose category had been deleted and recreated (FK is ON DELETE SET
-    // NULL, which nulls out product.category_id).
+    // Explicit, NON-silent category guard.
     if (!f.category_id) {
-      toast.error('Kategoriya tanlanishi shart');
+      toast.error(t('admin.productForm.categoryRequired'));
       return;
     }
 
@@ -142,7 +137,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
   const isEditing = Boolean(f.id);
 
   // Hoisted to a local const so the JSX uses single-brace {imageUploaderValue}.
-  // Inline  ...  object literals must be avoided in this codebase.
   const imageUploaderValue = {
     image_url: f.image_url,
     image_thumb_url: f.image_thumb_url,
@@ -153,26 +147,26 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
   return (
     <form onSubmit={submit} className="grid gap-4">
       <section className="card grid gap-3">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Basic info</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">{t('admin.productForm.sectionBasic')}</div>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="label">{t('admin.categories')} *</label>
             {noCategories ? (
               <div className="input !bg-red-500/5 !border-red-500/30 text-red-300 text-sm flex items-center">
-                Avval kategoriya yarating
+                {t('admin.productForm.createCategoryFirst')}
               </div>
             ) : (
               <Select
                 value={f.category_id || ''}
                 onChange={(v) => set('category_id')(v)}
                 options={categoryOptions}
-                placeholder="\u2014"
+                placeholder={t('admin.productForm.selectPlaceholder')}
                 invalid={categoryInvalid}
               />
             )}
             {categoryInvalid && (
               <div className="mt-1 text-[11px] text-red-400">
-                Kategoriya tanlanishi shart
+                {t('admin.productForm.categoryRequired')}
               </div>
             )}
           </div>
@@ -202,34 +196,34 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
       </section>
 
       <section className="card grid gap-3">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Names</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">{t('admin.productForm.sectionNames')}</div>
         <div className="grid md:grid-cols-3 gap-3">
-          <div><label className="label">Name (UZ)</label><input className="input" value={f.name_uz} onChange={set('name_uz')} required /></div>
-          <div><label className="label">Name (RU)</label><input className="input" value={f.name_ru} onChange={set('name_ru')} required /></div>
-          <div><label className="label">Name (EN)</label><input className="input" value={f.name_en} onChange={set('name_en')} required /></div>
+          <div><label className="label">{t('admin.productForm.nameUz')}</label><input className="input" value={f.name_uz} onChange={set('name_uz')} required /></div>
+          <div><label className="label">{t('admin.productForm.nameRu')}</label><input className="input" value={f.name_ru} onChange={set('name_ru')} required /></div>
+          <div><label className="label">{t('admin.productForm.nameEn')}</label><input className="input" value={f.name_en} onChange={set('name_en')} required /></div>
         </div>
       </section>
 
       <section className="card grid gap-3">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Description</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">{t('admin.productForm.sectionDescription')}</div>
         <div className="grid md:grid-cols-3 gap-3">
-          <div><label className="label">UZ</label><textarea className="input" rows={3} value={f.description_uz || ''} onChange={set('description_uz')} /></div>
-          <div><label className="label">RU</label><textarea className="input" rows={3} value={f.description_ru || ''} onChange={set('description_ru')} /></div>
-          <div><label className="label">EN</label><textarea className="input" rows={3} value={f.description_en || ''} onChange={set('description_en')} /></div>
+          <div><label className="label">{t('admin.productForm.descriptionUz')}</label><textarea className="input" rows={3} value={f.description_uz || ''} onChange={set('description_uz')} /></div>
+          <div><label className="label">{t('admin.productForm.descriptionRu')}</label><textarea className="input" rows={3} value={f.description_ru || ''} onChange={set('description_ru')} /></div>
+          <div><label className="label">{t('admin.productForm.descriptionEn')}</label><textarea className="input" rows={3} value={f.description_en || ''} onChange={set('description_en')} /></div>
         </div>
       </section>
 
       <section className="card grid gap-3">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Ingredients</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">{t('admin.productForm.sectionIngredients')}</div>
         <div className="grid md:grid-cols-3 gap-3">
-          <div><label className="label">UZ</label><textarea className="input" rows={2} value={f.ingredients_uz || ''} onChange={set('ingredients_uz')} /></div>
-          <div><label className="label">RU</label><textarea className="input" rows={2} value={f.ingredients_ru || ''} onChange={set('ingredients_ru')} /></div>
-          <div><label className="label">EN</label><textarea className="input" rows={2} value={f.ingredients_en || ''} onChange={set('ingredients_en')} /></div>
+          <div><label className="label">{t('admin.productForm.ingredientsUz')}</label><textarea className="input" rows={2} value={f.ingredients_uz || ''} onChange={set('ingredients_uz')} /></div>
+          <div><label className="label">{t('admin.productForm.ingredientsRu')}</label><textarea className="input" rows={2} value={f.ingredients_ru || ''} onChange={set('ingredients_ru')} /></div>
+          <div><label className="label">{t('admin.productForm.ingredientsEn')}</label><textarea className="input" rows={2} value={f.ingredients_en || ''} onChange={set('ingredients_en')} /></div>
         </div>
       </section>
 
       <section className="card grid gap-3">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Pricing & details</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">{t('admin.productForm.sectionPricing')}</div>
         <div className="grid md:grid-cols-4 gap-3">
           <div><label className="label">{t('admin.price')}</label><input type="number" step="0.01" className="input" value={f.price} onChange={set('price')} required /></div>
           <div><label className="label">{t('admin.discountPrice')}</label><input type="number" step="0.01" className="input" value={f.discount_price == null ? '' : f.discount_price} onChange={set('discount_price')} /></div>
@@ -246,7 +240,7 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
         <div className="flex gap-2 ml-auto">
           <button type="button" onClick={onCancel} className="btn-ghost">{t('common.cancel')}</button>
           <button type="submit" disabled={submitting || noCategories} className="btn-gold">
-            {submitting ? '\u2026' : t('common.save')}
+            {submitting ? '\u2026' : t('admin.productForm.saveProduct')}
           </button>
         </div>
       </section>

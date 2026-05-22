@@ -26,7 +26,7 @@ export default function AdminLogin() {
       await login(identifier, password);
       nav('/admin/dashboard', { replace: true });
     } catch (x) {
-      setErr(x.response?.data?.error || 'Login failed');
+      setErr(x.response?.data?.error || t('admin.loginPage.failed'));
     } finally {
       setBusy(false);
     }
@@ -35,14 +35,14 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen bg-restaurant flex items-center justify-center p-4">
       <form onSubmit={submit} className="glass-strong p-6 w-full max-w-sm grid gap-3">
-        <h1 className="font-display gold-text text-2xl text-center">SG Admin</h1>
+        <h1 className="font-display gold-text text-2xl text-center">{t('admin.loginPage.title')}</h1>
         <div>
-          <label className="label">Login</label>
+          <label className="label">{t('admin.loginPage.identifier')}</label>
           <input
             className="input"
             type="text"
             autoComplete="username"
-            placeholder="Admin"
+            placeholder={t('admin.loginPage.identifierPlaceholder')}
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             required
@@ -60,7 +60,7 @@ export default function AdminLogin() {
           />
         </div>
         {err && <div className="text-red-400 text-sm">{err}</div>}
-        <button disabled={busy} className="btn-gold mt-2">{busy ? '...' : t('admin.login')}</button>
+        <button disabled={busy} className="btn-gold mt-2">{busy ? t('admin.loginPage.submitting') : t('admin.loginPage.submit')}</button>
         <Link to="/menu" className="btn-ghost mt-1 justify-center text-sm">
           {t('nav.backToMenu')}
         </Link>

@@ -21,7 +21,7 @@ const IS_DEV = !!(import.meta && import.meta.env && import.meta.env.DEV);
 
 // Extract a user-facing message from an axios/HTTP error. Prefers the
 // backend `details` field (set by products.controller.dbError), then
-// `error`, then the axios message, then a generic fallback. Logging the
+// `error`, then the axios message, then a localized fallback. Logging the
 // raw exception is gated to dev so the production console stays clean.
 function apiErrorMessage(err, fallback) {
   const data = err && err.response && err.response.data;
@@ -29,7 +29,7 @@ function apiErrorMessage(err, fallback) {
     (data && (data.details || data.error)) ||
     (err && err.message) ||
     fallback ||
-    'Xatolik yuz berdi';
+    '';
   if (IS_DEV) {
     // eslint-disable-next-line no-console
     console.error('[admin/products]', fallback || 'API error', err);
@@ -121,8 +121,6 @@ function CategoryDropdown({ value, onChange, categories, allLabel }) {
 }
 
 function DropdownOption({ selected, onClick, label }) {
-  // border-l-2 with a transparent default + gold-on-selected keeps text
-  // alignment perfectly consistent across rows.
   return (
     <li
       role="option"
@@ -174,16 +172,8 @@ export default function AdminProducts() {
     });
   useEffect(() => { reload(); }, []);
 
-  // onSave now ALWAYS surfaces the outcome to the admin via a toast AND
-  // does an optimistic local state splice from the API response.
-  //
-  // The optimistic splice matters for Ikkinchi-taomlar (and any category)
-  // because the public /api/products list response carries a short SWR
-  // cache. Without the splice, the admin's own follow-up GET could come
-  // back stale from the edge / browser cache and the just-saved row would
-  // appear unchanged \u2014 indistinguishable from "save was lost". The
-  // backend now also sends `private, no-store` for authenticated reads,
-  // but the splice gives us a belt-and-braces guarantee.
+  // onSave now ALWAYS surfaces the outcome to the admin via a localized
+  // toast AND does an optimistic local state splice from the API response.
   const onSave = async (data) => {
     const wasEditing = Boolean(editing);
     const editingId = editing && editing.id;
@@ -202,9 +192,6 @@ export default function AdminProducts() {
         ? await productService.update(editingId, data)
         : await productService.create(data);
 
-      // Optimistic local state update: splice the API response into the
-      // existing list BEFORE the follow-up reload(). Match by product.id
-      // (never by index, never by name, never by category).
       if (saved && saved.id) {
         setList((prev) => {
           if (wasEditing) {
@@ -215,15 +202,13 @@ export default function AdminProducts() {
       }
 
       setEditing(null); setCreating(false);
-      // Background revalidation. If the cache serves a stale list, the
-      // optimistic splice above keeps the admin UI correct.
       reload().catch(() => { /* non-blocking */ });
       toast.success(
-        wasEditing ? 'Mahsulot saqlandi' : 'Mahsulot qo\u2018shildi'
+        wasEditing ? t('admin.productsPage.saveSuccess') : t('admin.productsPage.addSuccess')
       );
     } catch (err) {
-      const msg = apiErrorMessage(err, 'Mahsulotni saqlashda xatolik');
-      toast.error('Mahsulotni saqlashda xatolik: ' + msg);
+      const msg = apiErrorMessage(err, t('admin.productsPage.saveError'));
+      toast.error(t('admin.productsPage.saveError') + ': ' + msg);
     } finally {
       setBusy(false);
     }
@@ -235,13 +220,11 @@ export default function AdminProducts() {
     try {
       await productService.remove(removedId);
       setConfirmDel(null);
-      // Optimistic removal so the row disappears immediately even if the
-      // /api/products GET response is briefly cached.
       setList((prev) => prev.filter((p) => p.id !== removedId));
       reload().catch(() => { /* non-blocking */ });
-      toast.success('Mahsulot o\u2018chirildi');
+      toast.success(t('admin.productsPage.deleteSuccess'));
     } catch (err) {
-      const msg = apiErrorMessage(err, 'Mahsulotni o\u2018chirishda xatolik');
+      const msg = apiErrorMessage(err, t('admin.productsPage.deleteError'));
       toast.error(msg);
     }
   };
@@ -277,11 +260,9 @@ export default function AdminProducts() {
 
   const isFiltering = searchQuery.trim().length > 0 || Boolean(categoryFilter);
   const emptyMessage =
-    isFiltering && list.length > 0 ? 'Mahsulot topilmadi' : t('common.empty');
+    isFiltering && list.length > 0 ? t('admin.productsPage.emptyFiltered') : t('common.empty');
 
-  // Inline toggle handlers (availability + active). Wrapped so a 500 from
-  // the API surfaces as a toast, and the splice keeps the row visually in
-  // sync immediately.
+  // Inline toggle handlers (availability + active).
   const handleToggleAvailable = async (row, v) => {
     try {
       const saved = await productService.setAvailability(row.id, v);
@@ -290,7 +271,7 @@ export default function AdminProducts() {
       }
       reload().catch(() => { /* non-blocking */ });
     } catch (err) {
-      const msg = apiErrorMessage(err, 'Holatni o\u2018zgartirishda xatolik');
+      const msg = apiErrorMessage(err, t('admin.productsPage.toggleError'));
       toast.error(msg);
       await reload();
     }
@@ -304,7 +285,7 @@ export default function AdminProducts() {
       }
       reload().catch(() => { /* non-blocking */ });
     } catch (err) {
-      const msg = apiErrorMessage(err, 'Holatni o\u2018zgartirishda xatolik');
+      const msg = apiErrorMessage(err, t('admin.productsPage.toggleError'));
       toast.error(msg);
       await reload();
     }
@@ -314,8 +295,6 @@ export default function AdminProducts() {
     {
       key: 'image',
       label: '',
-      // Admin row preview prefers the optimized thumbnail (new pipeline)
-      // and falls back to the legacy thumbnail_url column.
       render: (r) => (
         <ImageWithFallback
           src={r.image_url}
@@ -324,7 +303,7 @@ export default function AdminProducts() {
         />
       ),
     },
-    { key: 'name_uz', label: 'Name (UZ)' },
+    { key: 'name_uz', label: t('admin.productForm.nameUz') },
     { key: 'category', label: t('admin.categories'), render: (r) => cats.find((c) => c.id === r.category_id)?.name_uz || '\u2014' },
     { key: 'price', label: t('admin.price'), render: (r) => formatPrice(r.discount_price ?? r.price) },
     { key: 'is_available', label: t('admin.isAvailable'), render: (r) => (
@@ -343,9 +322,6 @@ export default function AdminProducts() {
 
   return (
     <div className="grid gap-4 min-w-0">
-      {/* Header row: title + count on the left, "+ Qo'shish" on the right.
-          min-w-0 on the cluster so it can shrink instead of pushing the
-          button outside; shrink-0 on the button so it never gets clipped. */}
       <div className="flex items-center justify-between flex-wrap gap-2 min-w-0">
         <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="font-display text-2xl gold-text truncate">{t('admin.products')}</h1>
@@ -361,9 +337,6 @@ export default function AdminProducts() {
         </button>
       </div>
 
-      {/* Search + category filter row. relative + z-20 so the dropdown menu
-          floats above the products table without clipping. min-w-0 on the
-          search wrapper so it can shrink inside the flex parent. */}
       <div className="relative z-20 flex flex-col sm:flex-row gap-2.5 min-w-0">
         <div className="relative flex-1 min-w-0">
           <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-white/50">
@@ -376,15 +349,15 @@ export default function AdminProducts() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Mahsulotlarni qidirish..."
-            aria-label="Mahsulotlarni qidirish"
+            placeholder={t('admin.productsPage.searchPlaceholder')}
+            aria-label={t('admin.productsPage.searchPlaceholder')}
             className={GLASS_FIELD + ' w-full pl-10 pr-10 placeholder-white/40'}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              aria-label="Tozalash"
+              aria-label={t('admin.common.clearAria')}
               className="absolute inset-y-0 right-2 flex items-center justify-center w-8 text-white/55 hover:text-white transition"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -399,7 +372,7 @@ export default function AdminProducts() {
           value={categoryFilter}
           onChange={setCategoryFilter}
           categories={cats}
-          allLabel="Barcha kategoriyalar"
+          allLabel={t('admin.productsPage.categoryFilterAll')}
         />
       </div>
 
@@ -413,14 +386,16 @@ export default function AdminProducts() {
         />
       )}
 
-      {/* relative z-0 keeps the table beneath the dropdown menu when open.
-          min-w-0 lets the DataTable wrapper enable its horizontal scroll on
-          narrow viewports instead of overflowing the page. */}
       <div className="relative z-0 min-w-0">
         <DataTable columns={cols} rows={filteredList} empty={emptyMessage} />
       </div>
 
-      <ConfirmDialog open={!!confirmDel} onCancel={() => setConfirmDel(null)} onConfirm={onDelete} title="Delete product?" />
+      <ConfirmDialog
+        open={!!confirmDel}
+        onCancel={() => setConfirmDel(null)}
+        onConfirm={onDelete}
+        title={t('admin.productsPage.deleteConfirmTitle')}
+      />
     </div>
   );
 }

@@ -72,11 +72,11 @@ export default function CategoryForm({ initial = {}, onSubmit, onCancel, submitt
 
   return (
     <form onSubmit={submit} className="card grid md:grid-cols-2 gap-3">
-      <div><label className="label">Slug</label><input className="input" value={f.slug || ''} onChange={set('slug')} placeholder="e.g. milliy" /></div>
+      <div><label className="label">{t('admin.categoryForm.slug')}</label><input className="input" value={f.slug || ''} onChange={set('slug')} placeholder={t('admin.categoryForm.slugPlaceholder')} /></div>
       <div><label className="label">{t('admin.sortOrder')}</label><input className="input" type="number" value={f.sort_order || 0} onChange={(e) => set('sort_order')(Number(e.target.value))} /></div>
-      <div><label className="label">Name (UZ)</label><input className="input" value={f.name_uz} onChange={set('name_uz')} required /></div>
-      <div><label className="label">Name (RU)</label><input className="input" value={f.name_ru} onChange={set('name_ru')} required /></div>
-      <div className="md:col-span-2"><label className="label">Name (EN)</label><input className="input" value={f.name_en} onChange={set('name_en')} required /></div>
+      <div><label className="label">{t('admin.categoryForm.nameUz')}</label><input className="input" value={f.name_uz} onChange={set('name_uz')} required /></div>
+      <div><label className="label">{t('admin.categoryForm.nameRu')}</label><input className="input" value={f.name_ru} onChange={set('name_ru')} required /></div>
+      <div className="md:col-span-2"><label className="label">{t('admin.categoryForm.nameEn')}</label><input className="input" value={f.name_en} onChange={set('name_en')} required /></div>
       <div className="md:col-span-2">
         <label className="label">{t('admin.image')}</label>
         {isEditing ? (

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { useT } from '../../locales/useT.js';
 
 // All generated QR entries are stored locally in the admin browser. The
 // product/table catalogue is intentionally not pushed to the backend — the
@@ -48,9 +49,10 @@ function downloadCanvasAsPng(canvas, fileName) {
 }
 
 function QrCard({ entry, onDelete }) {
+  const t = useT();
   const wrapRef = useRef(null);
   const url = useMemo(() => buildQrUrl(entry.tableNumber), [entry.tableNumber]);
-  const displayLabel = entry.label || ('Stol ' + entry.tableNumber);
+  const displayLabel = entry.label || (t('admin.qrPage.tableFallback') + ' ' + entry.tableNumber);
 
   const handleDownload = () => {
     const canvas = wrapRef.current && wrapRef.current.querySelector('canvas');
@@ -83,21 +85,22 @@ function QrCard({ entry, onDelete }) {
         />
       </div>
       <div className="text-[11px] text-white/65 leading-snug max-w-[16rem]">
-        Menyuni ko'rish uchun skaner qiling
+        {t('admin.qrPage.scanText')}
       </div>
       <div className="text-[10px] text-white/40 break-all">{url}</div>
 
       {/* Action row — hidden during print so the printed card is clean. */}
       <div className="flex flex-wrap items-center justify-center gap-2 mt-1 print:hidden">
-        <button onClick={handleDownload} className="btn-ghost !py-1.5 !px-3 text-xs">PNG</button>
-        <button onClick={handlePrint}    className="btn-ghost !py-1.5 !px-3 text-xs">Chop etish</button>
-        <button onClick={() => onDelete(entry.id)} className="btn-ghost !py-1.5 !px-3 text-xs !text-red-400">O'chirish</button>
+        <button onClick={handleDownload} className="btn-ghost !py-1.5 !px-3 text-xs">{t('admin.qrPage.png')}</button>
+        <button onClick={handlePrint}    className="btn-ghost !py-1.5 !px-3 text-xs">{t('admin.qrPage.print')}</button>
+        <button onClick={() => onDelete(entry.id)} className="btn-ghost !py-1.5 !px-3 text-xs !text-red-400">{t('admin.qrPage.delete')}</button>
       </div>
     </div>
   );
 }
 
 export default function AdminQR() {
+  const t = useT();
   const [tables, setTables] = useState(() => loadTables());
   const [tableNumber, setTableNumber] = useState('');
   const [label, setLabel] = useState('');
@@ -108,7 +111,7 @@ export default function AdminQR() {
     e.preventDefault();
     const num = tableNumber.trim();
     if (!num) return;
-    const exists = tables.some((t) => slugifyTable(t.tableNumber) === slugifyTable(num));
+    const exists = tables.some((tbl) => slugifyTable(tbl.tableNumber) === slugifyTable(num));
     if (exists) {
       setTableNumber('');
       setLabel('');
@@ -126,14 +129,14 @@ export default function AdminQR() {
   };
 
   const onDelete = (id) => {
-    setTables((prev) => prev.filter((t) => t.id !== id));
+    setTables((prev) => prev.filter((tbl) => tbl.id !== id));
   };
 
   return (
     <div className="grid gap-4 min-w-0">
       <div className="flex items-center justify-between flex-wrap gap-2 min-w-0">
         <div className="flex items-baseline gap-3 min-w-0">
-          <h1 className="font-display text-2xl gold-text truncate">QR kodlar</h1>
+          <h1 className="font-display text-2xl gold-text truncate">{t('admin.qrPage.title')}</h1>
           <span className="text-xs text-white/55 tabular-nums shrink-0">{tables.length}</span>
         </div>
       </div>
@@ -143,31 +146,31 @@ export default function AdminQR() {
         className="glass p-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] items-end print:hidden"
       >
         <div className="min-w-0">
-          <label className="label">Stol raqami</label>
+          <label className="label">{t('admin.qrPage.tableNumber')}</label>
           <input
             type="text"
             value={tableNumber}
             onChange={(e) => setTableNumber(e.target.value)}
-            placeholder="1, 2, VIP-1"
+            placeholder={t('admin.qrPage.tableNumberPlaceholder')}
             className="input"
             required
           />
         </div>
         <div className="min-w-0">
-          <label className="label">Nomi (ixtiyoriy)</label>
+          <label className="label">{t('admin.qrPage.name')}</label>
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Stol 1"
+            placeholder={t('admin.qrPage.namePlaceholder')}
             className="input"
           />
         </div>
-        <button type="submit" className="btn-gold whitespace-nowrap shrink-0">+ Qo'shish</button>
+        <button type="submit" className="btn-gold whitespace-nowrap shrink-0">+ {t('admin.qrPage.addQr')}</button>
       </form>
 
       {tables.length === 0 ? (
-        <div className="glass p-10 text-center text-white/55">QR kodlar hali yaratilmagan</div>
+        <div className="glass p-10 text-center text-white/55">{t('admin.qrPage.empty')}</div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
           {tables.map((entry) => (
