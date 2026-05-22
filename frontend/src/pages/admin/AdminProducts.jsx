@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DataTable from '../../components/admin/DataTable.jsx';
 import ProductForm from '../../components/admin/ProductForm.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
@@ -11,6 +11,7 @@ import { useT } from '../../locales/useT.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { getLocalizedField } from '../../lib/localized.js';
 import { formatPrice } from '../../utils/formatPrice.js';
+import { clearMenuCache } from '../../lib/menuCache.js';
 
 const GLASS_FIELD =
   'h-11 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-2xl ' +
@@ -169,6 +170,21 @@ export default function AdminProducts() {
     });
   useEffect(() => { reload(); }, []);
 
+  // Computes the suggested next sort_order for a new product in a given
+  // category: max existing sort_order in that category + 1, falling back to
+  // 1 when the category is empty. Reads from the current admin list state
+  // (already filtered to active rows via the API list endpoint).
+  const getNextSortOrder = useCallback((catId) => {
+    if (!catId) return 1;
+    let max = 0;
+    for (const p of list) {
+      if (p.category_id !== catId) continue;
+      const v = typeof p.sort_order === 'number' ? p.sort_order : 0;
+      if (v > max) max = v;
+    }
+    return max + 1;
+  }, [list]);
+
   const onSave = async (data) => {
     const wasEditing = Boolean(editing);
     const editingId = editing && editing.id;
@@ -196,6 +212,9 @@ export default function AdminProducts() {
         });
       }
 
+      // Public menu must reflect the change on next visit / poll cycle.
+      clearMenuCache();
+
       setEditing(null); setCreating(false);
       reload().catch(() => { /* non-blocking */ });
       toast.success(
@@ -216,6 +235,7 @@ export default function AdminProducts() {
       await productService.remove(removedId);
       setConfirmDel(null);
       setList((prev) => prev.filter((p) => p.id !== removedId));
+      clearMenuCache();
       reload().catch(() => { /* non-blocking */ });
       toast.success(t('admin.productsPage.deleteSuccess'));
     } catch (err) {
@@ -235,9 +255,21 @@ export default function AdminProducts() {
     return map;
   }, [cats, lang]);
 
+  // Category id -> sort_order, used when sorting across categories in the
+  // "All categories" view. Missing values fall back to a large number so
+  // they sink to the end.
+  const categorySortOrderById = useMemo(() => {
+    const map = new Map();
+    for (const c of cats) {
+      const v = typeof c.sort_order === 'number' ? c.sort_order : 999;
+      map.set(c.id, v);
+    }
+    return map;
+  }, [cats]);
+
   const filteredList = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return list.filter((p) => {
+    const base = list.filter((p) => {
       if (categoryFilter && p.category_id !== categoryFilter) return false;
       if (!q) return true;
       const hay = [
@@ -249,7 +281,27 @@ export default function AdminProducts() {
       ].filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-  }, [list, searchQuery, categoryFilter, localizedCategoryNameById, lang]);
+
+    const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+    const ts = (v) => (v ? new Date(v).getTime() || 0 : 0);
+
+    // When a category is selected: order by product.sort_order ASC, then
+    //   created_at ASC.
+    // When showing all categories: order by category.sort_order ASC, then
+    //   product.sort_order ASC, then created_at ASC.
+    const sorted = [...base].sort((a, b) => {
+      if (!categoryFilter) {
+        const aco = categorySortOrderById.get(a.category_id) ?? 999;
+        const bco = categorySortOrderById.get(b.category_id) ?? 999;
+        if (aco !== bco) return aco - bco;
+      }
+      const apo = num(a.sort_order);
+      const bpo = num(b.sort_order);
+      if (apo !== bpo) return apo - bpo;
+      return ts(a.created_at) - ts(b.created_at);
+    });
+    return sorted;
+  }, [list, searchQuery, categoryFilter, localizedCategoryNameById, categorySortOrderById, lang]);
 
   const isFiltering = searchQuery.trim().length > 0 || Boolean(categoryFilter);
   const emptyMessage =
@@ -261,6 +313,7 @@ export default function AdminProducts() {
       if (saved && saved.id) {
         setList((prev) => prev.map((p) => (p.id === saved.id ? { ...p, ...saved } : p)));
       }
+      clearMenuCache();
       reload().catch(() => { /* non-blocking */ });
     } catch (err) {
       const msg = apiErrorMessage(err, t('admin.productsPage.toggleError'));
@@ -275,6 +328,7 @@ export default function AdminProducts() {
       if (saved && saved.id) {
         setList((prev) => prev.map((p) => (p.id === saved.id ? { ...p, ...saved } : p)));
       }
+      clearMenuCache();
       reload().catch(() => { /* non-blocking */ });
     } catch (err) {
       const msg = apiErrorMessage(err, t('admin.productsPage.toggleError'));
@@ -304,6 +358,15 @@ export default function AdminProducts() {
       key: 'category',
       label: t('admin.productsPage.columns.category'),
       render: (r) => localizedCategoryNameById.get(r.category_id) || '\u2014',
+    },
+    {
+      key: 'order',
+      label: t('admin.productsPage.columns.order'),
+      render: (r) => (
+        <span className="tabular-nums text-white/85">
+          {typeof r.sort_order === 'number' ? r.sort_order : 0}
+        </span>
+      ),
     },
     {
       key: 'price',
@@ -400,6 +463,7 @@ export default function AdminProducts() {
           submitting={busy}
           onSubmit={onSave}
           onCancel={() => { setCreating(false); setEditing(null); }}
+          getNextSortOrder={getNextSortOrder}
         />
       )}
 
