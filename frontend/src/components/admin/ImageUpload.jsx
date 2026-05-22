@@ -3,6 +3,7 @@ import ImageWithFallback from '../common/ImageWithFallback.jsx';
 import Icon from '../common/Icon.jsx';
 import { uploadService } from '../../services/uploadService.js';
 import { useToast } from '../common/Toast.jsx';
+import { useT } from '../../locales/useT.js';
 import {
   compressProductImage,
   ERR_TOO_LARGE,
@@ -10,14 +11,15 @@ import {
   ERR_UPLOAD_FAILED,
 } from '../../lib/imageCompression.js';
 
-// Map raw upload errors to user-facing Uzbek strings.
+// Map raw upload errors to user-facing strings.
 //
 // The legacy multipart endpoint also returns its own error codes
 // (IMAGE_TOO_LARGE / UNSUPPORTED_FILE_TYPE). The frontend now ALWAYS
 // compresses to <= 2 MB before uploading, so IMAGE_TOO_LARGE from the
-// backend should never actually fire \u2014 but if it ever does (e.g. a
+// backend should never actually fire — but if it ever does (e.g. a
 // browser without web-workers fell back to the original bytes), we still
-// want a clean Uzbek toast instead of leaking the English server message.
+// want a clean localized toast instead of leaking the English server
+// message.
 function friendlyError(err) {
   const status = err && err.response && err.response.status;
   const apiMsg = err && err.response && err.response.data && err.response.data.error;
@@ -36,28 +38,6 @@ function friendlyError(err) {
  *
  * Premium dark/gold image picker with drag-and-drop, click-to-browse, live
  * thumbnail preview, loading state, and a remove action.
- *
- * Props (all optional except value/onChange):
- *  - value, onChange   : current image URL and setter (string)
- *  - onUpload          : OPTIONAL richer callback fired with the full upload
- *                        response `{ image_url, thumbnail_url, url, bucket,
- *                        path, thumbnail_path }` after a successful upload,
- *                        and with an empty-fields object on remove. Lets the
- *                        parent persist `thumbnail_url` alongside `image_url`
- *                        without changing the simple `onChange(url)` contract
- *                        used by other consumers (settings logo, hero, etc.).
- *  - thumbnailUrl      : optional optimized URL preferred for the live preview
- *                        \u2014 falls back to `value` (full image_url) when
- *                        absent so old admin rows still render.
- *  - bucket            : storage bucket key (default: 'logos')
- *  - folder            : optional storage sub-folder (e.g. 'global', 'hero')
- *  - label             : section label rendered above the dropzone
- *  - aspect            : CSS aspect-ratio for the thumbnail (default '1 / 1')
- *  - uploadLabel       : button text when no image is set (default 'Upload')
- *  - changeLabel       : button text when an image is already set (default 'Change')
- *  - removeLabel       : remove button text (default 'Remove')
- *  - placeholder       : helper line shown inside the dropzone when empty
- *  - helperText        : small caption shown under the dropzone
  */
 export default function ImageUpload({
   value,
@@ -68,9 +48,9 @@ export default function ImageUpload({
   folder,
   label = 'Image',
   aspect = '1 / 1',
-  uploadLabel = 'Upload',
-  changeLabel = 'Change',
-  removeLabel = 'Remove',
+  uploadLabel,
+  changeLabel,
+  removeLabel,
   placeholder,
   helperText,
 }) {
@@ -79,6 +59,13 @@ export default function ImageUpload({
   const [err, setErr] = useState('');
   const inputRef = useRef(null);
   const toast = useToast();
+  const t = useT();
+
+  // Localized fallbacks so the dropzone reads naturally in UZ/RU/EN when
+  // the parent has not supplied explicit prop overrides.
+  const resolvedUploadLabel = uploadLabel || t('admin.common.upload');
+  const resolvedChangeLabel = changeLabel || t('admin.common.edit');
+  const resolvedRemoveLabel = removeLabel || t('admin.remove');
 
   const thumbStyle = { width: 96, height: 96, aspectRatio: aspect };
 
@@ -108,13 +95,10 @@ export default function ImageUpload({
     }
     try {
       const res = await uploadService.upload(toSend, bucket, folder);
-      // Prefer richer payload via `onUpload` so the parent can persist both
-      // `image_url` and `thumbnail_url`. Always also call `onChange(url)` so
-      // simple consumers (settings, etc.) keep working unchanged.
       const fullUrl = res.image_url || res.url || '';
       if (onUpload) onUpload(res);
       onChange(fullUrl);
-      toast.success((label || 'Image') + ' uploaded');
+      toast.success(t('admin.common.uploaded'));
     } catch (x) {
       const msg = friendlyError(x);
       setErr(msg);
@@ -132,8 +116,6 @@ export default function ImageUpload({
 
   const handleRemove = () => {
     onChange('');
-    // Also clear thumbnail_url and friends in the parent payload, if it
-    // wired up the richer callback.
     if (onUpload) onUpload({ image_url: '', thumbnail_url: '', url: '' });
   };
 
@@ -141,18 +123,12 @@ export default function ImageUpload({
     'flex items-center gap-3 rounded-2xl border border-dashed p-3 transition ' +
     (drag ? 'border-gold/60 bg-gold/5' : 'border-white/15 bg-white/[0.03] hover:border-white/25');
 
-  // Primary CTA styling: filled gold when no image yet (clearer call to action),
-  // ghost/outline gold when an image already exists.
   const primaryBtnCls = value
     ? 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gold/40 text-gold hover:bg-gold/10 hover:border-gold/60 transition disabled:opacity-50'
     : 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-gold text-black hover:brightness-110 transition disabled:opacity-50 shadow-[0_2px_18px_-4px_rgba(212,175,55,0.55)]';
 
-  const fallbackPlaceholder =
-    'Drop an image, or click to browse (jpg, png, webp \u00B7 high quality supported)';
+  const fallbackPlaceholder = t('admin.logoPlaceholder');
 
-  // Preview prefers the optimized thumbnail when the parent supplies one;
-  // otherwise the full image is used (back-compat with rows that have no
-  // `thumbnail_url` yet).
   const previewSrc = thumbnailUrl || value;
 
   return (
@@ -170,7 +146,7 @@ export default function ImageUpload({
           disabled={busy}
           className="shrink-0 rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-gold/40 transition relative group"
           style={thumbStyle}
-          aria-label={value ? changeLabel : uploadLabel}
+          aria-label={value ? resolvedChangeLabel : resolvedUploadLabel}
         >
           <ImageWithFallback src={previewSrc} className="w-full h-full object-cover" />
           {!value && (
@@ -191,7 +167,7 @@ export default function ImageUpload({
               onClick={openPicker}
             >
               <Icon name="upload" size={14} />
-              {busy ? '\u2026' : (value ? changeLabel : uploadLabel)}
+              {busy ? '\u2026' : (value ? resolvedChangeLabel : resolvedUploadLabel)}
             </button>
             {value && (
               <button
@@ -200,7 +176,7 @@ export default function ImageUpload({
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-white/10 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition disabled:opacity-50"
                 onClick={handleRemove}
               >
-                <Icon name="trash" size={14} /> {removeLabel}
+                <Icon name="trash" size={14} /> {resolvedRemoveLabel}
               </button>
             )}
           </div>

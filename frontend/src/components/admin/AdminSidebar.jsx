@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import Icon from '../common/Icon.jsx';
+import LanguageSwitcher from './LanguageSwitcher.jsx';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useT } from '../../locales/useT.js';
 
@@ -22,8 +23,8 @@ function Item({ to, label, icon, iconNode, onClick }) {
   );
 }
 
-// Inline QR icon used for the "QR kodlar" sidebar item. Kept local so we
-// don't have to extend the shared <Icon> name set.
+// Inline QR icon used for the QR sidebar item. Kept local so we don't have
+// to extend the shared <Icon> name set.
 const QrIcon = (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -49,16 +50,16 @@ export default function AdminSidebar() {
   const admin  = useAuthStore((s) => s.admin);
   const [open, setOpen] = useState(false);
 
-  // Tables / "Stollar" navigation has been intentionally removed from the admin
-  // UI. The backend route may still exist for legacy callers, but it is no
-  // longer surfaced anywhere in the admin panel.
+  // Tables / "Stollar" navigation has been intentionally removed from the
+  // admin UI. The backend route may still exist for legacy callers, but it
+  // is no longer surfaced anywhere in the admin panel.
   const items = (
     <>
-      <Item to="/admin/dashboard"  label={t('admin.dashboard')}  icon="dashboard" onClick={() => setOpen(false)} />
-      <Item to="/admin/categories" label={t('admin.categories')} icon="list"      onClick={() => setOpen(false)} />
-      <Item to="/admin/products"   label={t('admin.products')}   icon="image"     onClick={() => setOpen(false)} />
-      <Item to="/admin/qr"         label="QR kodlar"             iconNode={QrIcon} onClick={() => setOpen(false)} />
-      <Item to="/admin/settings"   label={t('admin.settings')}   icon="gear"      onClick={() => setOpen(false)} />
+      <Item to="/admin/dashboard"  label={t('admin.sidebar.dashboard')}  icon="dashboard" onClick={() => setOpen(false)} />
+      <Item to="/admin/categories" label={t('admin.sidebar.categories')} icon="list"      onClick={() => setOpen(false)} />
+      <Item to="/admin/products"   label={t('admin.sidebar.products')}   icon="image"     onClick={() => setOpen(false)} />
+      <Item to="/admin/qr"         label={t('admin.sidebar.qr')}         iconNode={QrIcon} onClick={() => setOpen(false)} />
+      <Item to="/admin/settings"   label={t('admin.sidebar.settings')}   icon="gear"      onClick={() => setOpen(false)} />
     </>
   );
 
@@ -72,11 +73,11 @@ export default function AdminSidebar() {
     <>
       {/* Mobile top bar */}
       <div className="md:hidden sticky top-0 z-30 backdrop-blur-xl bg-black/55 border-b border-white/5 flex items-center justify-between px-3 py-2">
-        <button className="btn-icon" onClick={() => setOpen((v) => !v)} aria-label="Menu">
+        <button className="btn-icon" onClick={() => setOpen((v) => !v)} aria-label={t('admin.sidebar.menu')}>
           <Icon name={open ? 'close' : 'menu'} size={16} />
         </button>
         <div className="font-display gold-text text-base">SG Admin</div>
-        <button onClick={onLogout} className="btn-icon" aria-label={t('admin.logout')}>
+        <button onClick={onLogout} className="btn-icon" aria-label={t('admin.sidebar.logout')}>
           <Icon name="logout" size={16} />
         </button>
       </div>
@@ -92,8 +93,14 @@ export default function AdminSidebar() {
             <div className="font-display gold-text text-xl mb-3">SG Admin</div>
             {items}
             <div className="flex-1" />
+            <div className="flex items-center justify-between gap-3 px-1 pt-3">
+              <span className="text-[10px] uppercase tracking-[0.22em] text-white/45">
+                {t('admin.sidebar.language')}
+              </span>
+              <LanguageSwitcher />
+            </div>
             <button onClick={onLogout} className="btn-ghost mt-3 justify-start">
-              <Icon name="logout" size={16} /> {t('admin.logout')}
+              <Icon name="logout" size={16} /> {t('admin.sidebar.logout')}
             </button>
           </aside>
         </div>
@@ -111,8 +118,14 @@ export default function AdminSidebar() {
         {items}
         <div className="flex-1" />
         <div className="divider-gold my-2" />
-        <button onClick={onLogout} className="btn-ghost justify-start">
-          <Icon name="logout" size={16} /> {t('admin.logout')}
+        <div className="flex items-center justify-between gap-3 px-1">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-white/45">
+            {t('admin.sidebar.language')}
+          </span>
+          <LanguageSwitcher />
+        </div>
+        <button onClick={onLogout} className="btn-ghost justify-start mt-2">
+          <Icon name="logout" size={16} /> {t('admin.sidebar.logout')}
         </button>
       </aside>
     </>

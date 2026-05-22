@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import Icon from '../common/Icon.jsx';
+import { useT } from '../../locales/useT.js';
 
 const overlay = {
   initial: { opacity: 0 },
@@ -19,7 +20,9 @@ const dialogTransition = {
   damping: 30,
 };
 
-export default function ConfirmDialog({ open, title = 'Are you sure?', description, onCancel, onConfirm, danger = true }) {
+export default function ConfirmDialog({ open, title, description, onCancel, onConfirm, danger = true }) {
+  const t = useT();
+  const resolvedTitle = title || t('admin.confirm.areYouSure');
   return (
     <AnimatePresence>
       {open && (
@@ -39,13 +42,15 @@ export default function ConfirmDialog({ open, title = 'Are you sure?', descripti
                 <Icon name={danger ? 'alert' : 'check'} size={18} />
               </div>
               <div className="flex-1">
-                <h3 className="font-display text-lg gold-text">{title}</h3>
+                <h3 className="font-display text-lg gold-text">{resolvedTitle}</h3>
                 {description && <p className="text-white/60 text-sm mt-1">{description}</p>}
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={onCancel} className="btn-ghost">Cancel</button>
-              <button onClick={onConfirm} className={danger ? 'btn-gold !bg-red-500 !text-white hover:!bg-red-600 !shadow-none' : 'btn-gold'}>Confirm</button>
+              <button onClick={onCancel} className="btn-ghost">{t('common.cancel')}</button>
+              <button onClick={onConfirm} className={danger ? 'btn-gold !bg-red-500 !text-white hover:!bg-red-600 !shadow-none' : 'btn-gold'}>
+                {danger ? t('admin.confirm.delete') : t('admin.common.confirm')}
+              </button>
             </div>
           </motion.div>
         </motion.div>
