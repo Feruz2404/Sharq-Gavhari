@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ImageUpload from './ImageUpload.jsx';
 import ImageUploader from '../../features/media/ImageUploader.jsx';
 import ToggleSwitch from './ToggleSwitch.jsx';
@@ -18,7 +18,14 @@ const UPLOAD_HINT = {
 
 const IS_DEV = !!(import.meta && import.meta.env && import.meta.env.DEV);
 
-export default function ProductForm({ initial = {}, categories = [], onSubmit, onCancel, submitting }) {
+export default function ProductForm({
+  initial = {},
+  categories = [],
+  onSubmit,
+  onCancel,
+  submitting,
+  getNextSortOrder, // (categoryId) => number; supplied by AdminProducts
+}) {
   const t = useT();
   const toast = useToast();
   const lang = useLanguageStore((s) => s.language);
@@ -31,13 +38,48 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
     image_thumb_url: '', image_original_url: '', image_object_path: '',
     price: 0, discount_price: null, secondary_price: null,
     weight: '', preparation_time: '',
+    sort_order: '',
     is_available: true, is_active: true,
     ...initial,
   });
   const [touched, setTouched] = useState(false);
 
+  // Whether the admin has manually typed into the sort_order field. Once
+  // true, the auto-default-on-category-change effect stops touching the
+  // value so the admin's number is never silently overwritten.
+  const manuallyEditedSortOrderRef = useRef(
+    !!(initial && initial.sort_order != null && initial.sort_order !== '')
+  );
+
   const set = (k) => (e) =>
     setF((prev) => ({ ...prev, [k]: e && e.target ? e.target.value : e }));
+
+  // Dedicated handler for sort_order so we can record that the admin
+  // typed into it (suppresses further auto-defaulting).
+  const setSortOrder = (e) => {
+    manuallyEditedSortOrderRef.current = true;
+    setF((prev) => ({ ...prev, sort_order: e.target.value }));
+  };
+
+  const isEditing = Boolean(f.id);
+
+  // Auto-suggest next-in-category sort_order while CREATING a new product.
+  //   - On first render with an initially-selected category and no
+  //     sort_order, populate the suggestion.
+  //   - When the admin changes category (still creating, still hasn't
+  //     typed a custom value), re-suggest.
+  //   - For EDIT mode we never auto-overwrite; the admin's existing value
+  //     is preserved verbatim.
+  useEffect(() => {
+    if (isEditing) return undefined;
+    if (manuallyEditedSortOrderRef.current) return undefined;
+    if (!f.category_id) return undefined;
+    if (typeof getNextSortOrder !== 'function') return undefined;
+    const next = getNextSortOrder(f.category_id);
+    if (typeof next !== 'number' || !Number.isFinite(next)) return undefined;
+    setF((prev) => ({ ...prev, sort_order: next }));
+    return undefined;
+  }, [f.category_id, isEditing, getNextSortOrder]);
 
   // Legacy ImageUpload (used while the row is still being CREATED — the
   // new /api/media pipeline keys files by entity id, which doesn't exist
@@ -119,7 +161,8 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
       is_active: !!f.is_active,
     };
     if (f.sort_order != null && f.sort_order !== '') {
-      payload.sort_order = Number(f.sort_order);
+      const n = parseInt(f.sort_order, 10);
+      if (Number.isFinite(n) && n >= 0) payload.sort_order = n;
     }
 
     if (IS_DEV) {
@@ -133,8 +176,6 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
 
     onSubmit(payload);
   };
-
-  const isEditing = Boolean(f.id);
 
   // Hoisted to a local const so the JSX uses single-brace {imageUploaderValue}.
   const imageUploaderValue = {
@@ -229,6 +270,22 @@ export default function ProductForm({ initial = {}, categories = [], onSubmit, o
           <div><label className="label">{t('admin.discountPrice')}</label><input type="number" step="0.01" className="input" value={f.discount_price == null ? '' : f.discount_price} onChange={set('discount_price')} /></div>
           <div><label className="label">{t('admin.weight')}</label><input className="input" value={f.weight || ''} onChange={set('weight')} /></div>
           <div><label className="label">{t('admin.prepTime')}</label><input className="input" value={f.preparation_time || ''} onChange={set('preparation_time')} /></div>
+        </div>
+        {/* Order number (sort_order) — own row so it doesn't crowd the
+            4-up pricing grid on tablet widths. */}
+        <div className="grid md:grid-cols-4 gap-3">
+          <div>
+            <label className="label">{t('admin.productForm.orderNumber')}</label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              className="input"
+              value={f.sort_order == null ? '' : f.sort_order}
+              onChange={setSortOrder}
+              placeholder="0"
+            />
+          </div>
         </div>
       </section>
 
