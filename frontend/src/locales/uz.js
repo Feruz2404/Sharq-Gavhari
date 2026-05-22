@@ -2,7 +2,7 @@
 //
 // Brand standard: use the STRAIGHT ASCII apostrophe (') for Uzbek words like
 // Qo'shish, O'chirish, Ko'rish, Bo'lim, So'm, Ma'lumot, To'lov, Ro'yxat, Yo'q.
-// Do NOT use curly or modifier-letter apostrophes (' ' ʼ \u2018 \u2019 \u02BB).
+// Do NOT use curly or modifier-letter apostrophes (’ ‘ ʼ \u2018 \u2019 \u02BB).
 // Do NOT use literal `\u2018`-style sequences in JSX — JSX text does not
 // interpret JS escape sequences.
 //
@@ -93,9 +93,6 @@ export default {
     updating: "Yangilanmoqda...",
   },
   admin: {
-    // Legacy flat keys — referenced from many places (sidebar, dashboard,
-    // settings, forms). Kept verbatim so nothing breaks. New work uses the
-    // nested namespaces below.
     login: "Kirish",
     email: "Email",
     password: "Parol",
@@ -153,7 +150,6 @@ export default {
     qrUrl: "QR URL",
     downloadQR: "QR yuklab olish",
 
-    // --- New namespaced admin keys (full i18n sweep) ---
     sidebar: {
       dashboard: "Boshqaruv paneli",
       categories: "Kategoriyalar",
@@ -206,6 +202,15 @@ export default {
       deleteError: "Mahsulotni o'chirishda xatolik",
       toggleError: "Holatni o'zgartirishda xatolik",
       deleteConfirmTitle: "Mahsulotni o'chirishni tasdiqlaysizmi?",
+      columns: {
+        image: "Rasm",
+        name: "Nomi",
+        category: "Kategoriya",
+        price: "Narx",
+        available: "Mavjud",
+        active: "Aktiv",
+        actions: "Amallar",
+      },
     },
     categoriesPage: {
       title: "Kategoriyalar",
@@ -214,6 +219,16 @@ export default {
       saveError: "Kategoriyani saqlashda xatolik",
       deleteSuccess: "Kategoriya o'chirildi",
       deleteError: "Kategoriyani o'chirishda xatolik",
+      searchPlaceholder: "Kategoriyalarni qidirish...",
+      emptyFiltered: "Kategoriya topilmadi",
+      columns: {
+        image: "Rasm",
+        name: "Nomi",
+        slug: "Slug",
+        order: "Tartib",
+        active: "Aktiv",
+        actions: "Amallar",
+      },
     },
     productForm: {
       sectionBasic: "Asosiy ma'lumot",
@@ -269,8 +284,6 @@ export default {
       areYouSure: "Ishonchingiz komilmi?",
     },
   },
-  // Image upload pipeline strings shown by ImageUploader / useImageUpload.
-  // Keys must match the stage names emitted by mediaSlice.
   media: {
     savingOriginal: "Asl sifatdagi rasm saqlanmoqda...",
     uploading: "Rasm yuklanmoqda...",

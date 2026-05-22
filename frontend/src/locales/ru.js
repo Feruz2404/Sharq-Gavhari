@@ -189,6 +189,15 @@ export default {
       deleteError: 'Ошибка при удалении продукта',
       toggleError: 'Ошибка при изменении статуса',
       deleteConfirmTitle: 'Удалить продукт?',
+      columns: {
+        image: 'Изображение',
+        name: 'Название',
+        category: 'Категория',
+        price: 'Цена',
+        available: 'В наличии',
+        active: 'Активен',
+        actions: 'Действия',
+      },
     },
     categoriesPage: {
       title: 'Категории',
@@ -197,6 +206,16 @@ export default {
       saveError: 'Ошибка при сохранении категории',
       deleteSuccess: 'Категория удалена',
       deleteError: 'Ошибка при удалении категории',
+      searchPlaceholder: 'Поиск категорий...',
+      emptyFiltered: 'Категория не найдена',
+      columns: {
+        image: 'Изображение',
+        name: 'Название',
+        slug: 'Slug',
+        order: 'Порядок',
+        active: 'Активен',
+        actions: 'Действия',
+      },
     },
     productForm: {
       sectionBasic: 'Основная информация',

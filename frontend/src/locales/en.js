@@ -196,6 +196,15 @@ export default {
       deleteError: "Failed to delete product",
       toggleError: "Failed to update status",
       deleteConfirmTitle: "Delete product?",
+      columns: {
+        image: "Image",
+        name: "Name",
+        category: "Category",
+        price: "Price",
+        available: "Available",
+        active: "Active",
+        actions: "Actions",
+      },
     },
     categoriesPage: {
       title: "Categories",
@@ -204,6 +213,16 @@ export default {
       saveError: "Failed to save category",
       deleteSuccess: "Category deleted",
       deleteError: "Failed to delete category",
+      searchPlaceholder: "Search categories...",
+      emptyFiltered: "No categories found",
+      columns: {
+        image: "Image",
+        name: "Name",
+        slug: "Slug",
+        order: "Order",
+        active: "Active",
+        actions: "Actions",
+      },
     },
     productForm: {
       sectionBasic: "Basic info",
