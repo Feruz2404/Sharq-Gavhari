@@ -9,23 +9,24 @@ import MenuSkeleton from '../../components/common/MenuSkeleton.jsx';
 import Icon from '../../components/common/Icon.jsx';
 import { categoryService } from '../../services/categoryService.js';
 import { productService } from '../../services/productService.js';
+import { menuService } from '../../services/menuService.js';
 import { useSettingsStore } from '../../stores/settingsStore.js';
 import { getLocalizedField } from '../../utils/getLocalizedField.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { useT } from '../../locales/useT.js';
+import {
+  getCachedMenu,
+  setCachedMenu,
+  getCachedVersion,
+  setCachedVersion,
+} from '../../lib/menuCache.js';
 
 const BAR_PARENT_SLUG = 'bar';
 
-// Module-level menu cache. Survives across MenuPage mounts within the same
-// tab session so navigating Menu → Cart → Back-to-Menu reuses the previously
-// loaded categories + products *instantly* (no spinner, no refetch flash).
-// A background refresh runs in the background after TTL elapses so the page
-// silently updates when something changed admin-side.
-//   * Reset only happens on hard reload — we never clear it from cart, QR
-//     entry, or language switch.
-//   * Settings are not cached here; useSettingsStore handles that.
-let _menuCache = null;            // { cats, prods, ts }
-const MENU_CACHE_TTL_MS = 5 * 60 * 1000;
+// Background refresh interval. Falls back to immediate refetch when the
+// tab becomes visible again so customers see fresh data the moment they
+// switch back to the menu tab.
+const MENU_VERSION_POLL_MS = 30 * 1000;
 
 // Product grid (mobile-first). Two big design decisions:
 //   1. auto-fill (not auto-fit) keeps empty tracks reserved, so a category
@@ -84,7 +85,18 @@ function normalizeMenu(rawCats, rawProds) {
     const bo = typeof b.sort_order === 'number' ? b.sort_order : 999;
     return ao - bo;
   });
-  return { cats: sortedCats, prods: activeProds };
+  // Sort products by sort_order ASC, then created_at ASC. Falls back to
+  // a high sentinel for legacy rows that haven't been assigned a number
+  // so they sink to the bottom of their category.
+  const sortedProds = [...activeProds].sort((a, b) => {
+    const ao = typeof a.sort_order === 'number' ? a.sort_order : 999;
+    const bo = typeof b.sort_order === 'number' ? b.sort_order : 999;
+    if (ao !== bo) return ao - bo;
+    const ats = a.created_at ? new Date(a.created_at).getTime() || 0 : 0;
+    const bts = b.created_at ? new Date(b.created_at).getTime() || 0 : 0;
+    return ats - bts;
+  });
+  return { cats: sortedCats, prods: sortedProds };
 }
 
 export default function MenuPage() {
@@ -93,11 +105,18 @@ export default function MenuPage() {
   const settings = useSettingsStore((s) => s.settings);
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
-  // Seed from cache on first render so the page paints instantly when
-  // returning from /cart or /product/:id.
-  const [cats, setCats] = useState(() => (_menuCache ? _menuCache.cats : []));
-  const [prods, setProds] = useState(() => (_menuCache ? _menuCache.prods : []));
-  const [loading, setLoading] = useState(() => !_menuCache);
+  // Seed from the shared menu cache so the page paints instantly when
+  // returning from /cart or /product/:id. The cache is sessionStorage-
+  // backed via lib/menuCache.js and is cleared by admin save/delete.
+  const [cats, setCats] = useState(() => {
+    const cached = getCachedMenu();
+    return cached ? cached.cats : [];
+  });
+  const [prods, setProds] = useState(() => {
+    const cached = getCachedMenu();
+    return cached ? cached.prods : [];
+  });
+  const [loading, setLoading] = useState(() => !getCachedMenu());
   const [q, setQ] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -109,29 +128,107 @@ export default function MenuPage() {
 
   const sectionRefs = useRef({});
   const programmaticScrollUntilRef = useRef(0);
+  // Tracks the most recent menu version we've seen — used to decide if a
+  // poll result requires a refetch. Initialised from session cache so a
+  // returning tab doesn't immediately refetch when nothing changed.
+  const versionRef = useRef(getCachedVersion());
+  // Guards against overlapping refetches if a poll + visibilitychange
+  // fire at roughly the same time.
+  const refetchingRef = useRef(false);
 
-  // Stale-while-revalidate: if cache is fresh, skip the network. Otherwise
-  // refetch in the background — the UI is already rendering cached data so
-  // there is no spinner-flash. On a fully cold tab we fall through to the
-  // initial fetch + loading state.
+  // Single fetch + cache write helper, reused by initial load, poll, and
+  // visibilitychange. Skips work while another refetch is in flight.
+  const refetchMenu = async () => {
+    if (refetchingRef.current) return;
+    refetchingRef.current = true;
+    try {
+      const [c, p] = await Promise.all([
+        categoryService.list(),
+        productService.list(),
+      ]);
+      const { cats: nextCats, prods: nextProds } = normalizeMenu(c, p);
+      setCats(nextCats);
+      setProds(nextProds);
+      setCachedMenu({ cats: nextCats, prods: nextProds });
+    } finally {
+      refetchingRef.current = false;
+    }
+  };
+
+  // Initial fetch: skip when cache exists (still call setLoading(false)
+  // since the seeded state covers it), otherwise hit the network. We
+  // ALSO kick off a silent version check so a stale cache from a previous
+  // session is reconciled almost instantly.
   useEffect(() => {
     let cancelled = false;
-    const cached = _menuCache;
-    const isFresh = cached && Date.now() - cached.ts < MENU_CACHE_TTL_MS;
-    if (isFresh) return undefined;
+    const cached = getCachedMenu();
 
-    Promise.all([categoryService.list(), productService.list()])
-      .then(([c, p]) => {
-        if (cancelled) return;
-        const { cats: nextCats, prods: nextProds } = normalizeMenu(c, p);
-        _menuCache = { cats: nextCats, prods: nextProds, ts: Date.now() };
-        setCats(nextCats);
-        setProds(nextProds);
-      })
-      .finally(() => {
+    const initial = async () => {
+      if (!cached) {
+        try {
+          await refetchMenu();
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      } else {
         if (!cancelled) setLoading(false);
-      });
+      }
+
+      // Reconcile against the server version on first paint. If the
+      // server reports a newer version than what we have cached,
+      // refetch silently in the background.
+      try {
+        const v = await menuService.getVersion();
+        if (cancelled) return;
+        if (v && v !== versionRef.current) {
+          versionRef.current = v;
+          setCachedVersion(v);
+          await refetchMenu();
+        } else if (v && !versionRef.current) {
+          versionRef.current = v;
+          setCachedVersion(v);
+        }
+      } catch {
+        // Version endpoint may be unreachable on legacy backends —
+        // we fall back to the cached menu and keep going.
+      }
+    };
+
+    initial();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 30s polling + visibilitychange refresh. Only polls while the tab is
+  // visible to avoid burning data in background tabs. When the tab is
+  // hidden and becomes visible again we immediately fire a version check
+  // — covers the common case of an admin saving in another tab.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const checkVersion = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const v = await menuService.getVersion();
+        if (!v) return;
+        if (v !== versionRef.current) {
+          versionRef.current = v;
+          setCachedVersion(v);
+          await refetchMenu();
+        }
+      } catch {
+        // ignore transient failures
+      }
+    };
+
+    const intervalId = window.setInterval(checkVersion, MENU_VERSION_POLL_MS);
+    const onVisibility = () => { checkVersion(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
