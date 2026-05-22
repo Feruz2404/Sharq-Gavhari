@@ -7,6 +7,7 @@ import { categoryService } from '../../services/categoryService.js';
 import { useT } from '../../locales/useT.js';
 import { useLanguageStore } from '../../stores/languageStore.js';
 import { getLocalizedField } from '../../lib/localized.js';
+import { clearMenuCache } from '../../lib/menuCache.js';
 
 // Match AdminProducts glass style so the categories search bar feels native
 // to the rest of the admin shell.
@@ -35,6 +36,9 @@ export default function AdminCategories() {
       else         await categoryService.create(data);
       setEditing(null); setCreating(false);
       await reload();
+      // Public menu must reflect category create/edit immediately
+      // (next visit or poll cycle).
+      clearMenuCache();
     } finally { setBusy(false); }
   };
 
@@ -43,6 +47,7 @@ export default function AdminCategories() {
     await categoryService.remove(confirmDel.id);
     setConfirmDel(null);
     reload();
+    clearMenuCache();
   };
 
   // Filter by the localized name in the currently selected language, with
