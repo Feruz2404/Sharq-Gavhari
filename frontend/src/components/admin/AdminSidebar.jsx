@@ -71,18 +71,24 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-30 backdrop-blur-xl bg-black/55 border-b border-white/5 flex items-center justify-between px-3 py-2">
-        <button className="btn-icon" onClick={() => setOpen((v) => !v)} aria-label={t('admin.sidebar.menu')}>
+      {/* Mobile top bar — includes a compact LanguageSwitcher on the right
+          so the switcher is always reachable on mobile without opening the
+          drawer. The sticky top bar stays inside the viewport regardless of
+          sidebar scroll position. */}
+      <div className="md:hidden sticky top-0 z-30 backdrop-blur-xl bg-black/55 border-b border-white/5 flex items-center justify-between gap-2 px-3 py-2">
+        <button className="btn-icon shrink-0" onClick={() => setOpen((v) => !v)} aria-label={t('admin.sidebar.menu')}>
           <Icon name={open ? 'close' : 'menu'} size={16} />
         </button>
-        <div className="font-display gold-text text-base">SG Admin</div>
-        <button onClick={onLogout} className="btn-icon" aria-label={t('admin.sidebar.logout')}>
+        <div className="font-display gold-text text-base truncate flex-1 min-w-0 text-center">SG Admin</div>
+        <LanguageSwitcher />
+        <button onClick={onLogout} className="btn-icon shrink-0" aria-label={t('admin.sidebar.logout')}>
           <Icon name="logout" size={16} />
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — LanguageSwitcher placed directly below the title,
+          before the navigation items. Logout stays pinned at the bottom
+          via flex-1 spacer. */}
       {open && (
         <div className="md:hidden fixed inset-0 z-30" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -91,14 +97,15 @@ export default function AdminSidebar() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="font-display gold-text text-xl mb-3">SG Admin</div>
-            {items}
-            <div className="flex-1" />
-            <div className="flex items-center justify-between gap-3 px-1 pt-3">
+            <div className="flex items-center justify-between gap-3 mb-3">
               <span className="text-[10px] uppercase tracking-[0.22em] text-white/45">
                 {t('admin.sidebar.language')}
               </span>
               <LanguageSwitcher />
             </div>
+            <div className="divider-gold mb-3" />
+            {items}
+            <div className="flex-1" />
             <button onClick={onLogout} className="btn-ghost mt-3 justify-start">
               <Icon name="logout" size={16} /> {t('admin.sidebar.logout')}
             </button>
@@ -106,24 +113,27 @@ export default function AdminSidebar() {
         </div>
       )}
 
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — LanguageSwitcher placed directly below the
+          admin identity card, before the navigation items. Always visible,
+          never hidden by sidebar scroll, never overlapping the logout
+          button (which is pinned at the bottom by the flex-1 spacer). */}
       <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-r border-white/5 bg-black/40 p-4 gap-1">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3">
           <div className="w-9 h-9 rounded-xl border border-gold/30 bg-gold/10 grid place-items-center font-display text-gold text-sm">SG</div>
-          <div>
+          <div className="min-w-0">
             <div className="font-display text-lg gold-text leading-tight">Admin</div>
-            <div className="text-[10px] text-white/45 tracking-widest uppercase">{admin?.email || 'Sharq Gavhari'}</div>
+            <div className="text-[10px] text-white/45 tracking-widest uppercase truncate">{admin?.email || 'Sharq Gavhari'}</div>
           </div>
         </div>
-        {items}
-        <div className="flex-1" />
-        <div className="divider-gold my-2" />
-        <div className="flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <span className="text-[10px] uppercase tracking-[0.22em] text-white/45">
             {t('admin.sidebar.language')}
           </span>
           <LanguageSwitcher />
         </div>
+        <div className="divider-gold mb-3" />
+        {items}
+        <div className="flex-1" />
         <button onClick={onLogout} className="btn-ghost justify-start mt-2">
           <Icon name="logout" size={16} /> {t('admin.sidebar.logout')}
         </button>
