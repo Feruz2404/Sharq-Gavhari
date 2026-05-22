@@ -20,7 +20,7 @@ const PUBLIC_COLUMNS = [
   'image_url', 'thumbnail_url',
   'weight', 'preparation_time',
   'is_active', 'is_available', 'sort_order',
-  'updated_at',
+  'created_at', 'updated_at',
 ].join(', ');
 
 // Whitelist of product columns that the admin product form may set on
@@ -53,16 +53,22 @@ function pickWritable(body) {
   for (const key of Object.keys(body)) {
     if (PRODUCT_WRITABLE.has(key)) out[key] = body[key];
   }
+  // Coerce sort_order to integer so a string from the number input never
+  // makes Postgres reject the row with a type error.
+  if (out.sort_order != null && out.sort_order !== '') {
+    const n = parseInt(out.sort_order, 10);
+    out.sort_order = Number.isFinite(n) ? n : 0;
+  } else if ('sort_order' in out) {
+    // Empty string from the form means "clear" -> 0 (the column default).
+    out.sort_order = 0;
+  }
   return out;
 }
 
 // Cache policy for read endpoints:
 //   - Authenticated callers (any request bearing an Authorization header)
 //     get `private, no-store` so the admin panel ALWAYS sees the freshest
-//     row right after their own PUT / PATCH / DELETE. This is the fix for
-//     "Saqlash bosgandan keyin o'zgarish ko'rinmayapti" symptoms that
-//     turned out to be the 60-second public cache returning the pre-save
-//     snapshot.
+//     row right after their own PUT / PATCH / DELETE.
 //   - Anonymous callers (public /menu) keep the 60s SWR cache so the
 //     customer menu remains snappy.
 function applyReadCache(req, res) {
@@ -109,10 +115,32 @@ function dbError(res, e, fallback) {
   });
 }
 
+// Compute the next sort_order value to assign to a new product within a
+// given category. Returns 1 if the category has no products yet.
+async function nextSortOrderForCategory(categoryId) {
+  const { data, error } = await supabase
+    .from('products')
+    .select('sort_order')
+    .eq('category_id', categoryId)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+  if (error) {
+    // Non-fatal: fall back to 0 so the row still inserts.
+    console.error('[products] nextSortOrderForCategory failed', error);
+    return 0;
+  }
+  const top = Array.isArray(data) && data[0] ? data[0].sort_order : null;
+  if (typeof top !== 'number') return 1;
+  return top + 1;
+}
+
 exports.list = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from('products').select(PUBLIC_COLUMNS).order('updated_at', { ascending: false });
+      .from('products')
+      .select(PUBLIC_COLUMNS)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
     if (error) throw error;
     applyReadCache(req, res);
     res.json(data);
@@ -123,7 +151,11 @@ exports.byCategory = async (req, res, next) => {
   try {
     const { categoryId } = req.params;
     const { data, error } = await supabase
-      .from('products').select(PUBLIC_COLUMNS).eq('category_id', categoryId).order('updated_at', { ascending: false });
+      .from('products')
+      .select(PUBLIC_COLUMNS)
+      .eq('category_id', categoryId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
     if (error) throw error;
     applyReadCache(req, res);
     res.json(data);
@@ -155,6 +187,12 @@ exports.create = async (req, res) => {
         error: 'category_id is required',
         details: 'A category must be selected before creating a product.',
       });
+    }
+    // Auto-assign sort_order when the admin did not supply one (or sent
+    // 0/empty). Matches the spec: "category has 12 products, new product
+    // default sort_order = 13".
+    if (!body.sort_order || body.sort_order <= 0) {
+      body.sort_order = await nextSortOrderForCategory(body.category_id);
     }
     const { data, error } = await supabase
       .from('products').insert(body).select().single();
