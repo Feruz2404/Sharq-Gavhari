@@ -16,16 +16,34 @@ const PORT = process.env.PORT || 5000;
 
 // Allowed frontend origins for CORS.
 //
-// Resolution order (first non-empty wins):
-//   1. CLIENT_URLS  — comma-separated list of origins (preferred for prod).
-//        e.g. CLIENT_URLS=http://localhost:5173,https://sharq-gavhari.vercel.app
-//   2. CLIENT_URL   — single origin (legacy / simple setups).
-//        e.g. CLIENT_URL=https://sharq-gavhari.vercel.app
-//   3. Built-in default — http://localhost:5173 so local dev works zero-config.
+// We always allow these baked-in origins so the API keeps working even if
+// the Render env vars haven't been updated yet:
+//   - http://localhost:5173            (vite dev server)
+//   - http://localhost:4173            (vite preview)
+//   - https://sharq-gavhari.vercel.app (legacy Vercel domain)
+//   - https://sharq-gavhari.uz         (production custom domain, apex)
+//   - https://www.sharq-gavhari.uz     (production custom domain, www)
+//
+// On top of that, CLIENT_URLS (preferred) or CLIENT_URL (legacy) can add
+// further origins via a comma-separated env var — useful for staging or
+// future domains:
+//   CLIENT_URLS=https://staging.sharq-gavhari.uz,https://admin.sharq-gavhari.uz
 //
 // We never use the wildcard "*" because the API uses credentials.
-const RAW = (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173').trim();
-const ALLOWED_ORIGINS = RAW.split(',').map((s) => s.trim()).filter(Boolean);
+const BAKED_IN_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'https://sharq-gavhari.vercel.app',
+  'https://sharq-gavhari.uz',
+  'https://www.sharq-gavhari.uz',
+];
+
+const ENV_RAW = (process.env.CLIENT_URLS || process.env.CLIENT_URL || '').trim();
+const ENV_ORIGINS = ENV_RAW.split(',').map((s) => s.trim()).filter(Boolean);
+
+// Merge + de-duplicate while preserving insertion order. Set keeps the
+// first occurrence so the printed list stays human-readable.
+const ALLOWED_ORIGINS = Array.from(new Set([...BAKED_IN_ORIGINS, ...ENV_ORIGINS]));
 
 // Allow Vercel preview deploys (https://<branch>-<hash>.vercel.app) by default.
 // Set ALLOW_VERCEL_PREVIEWS=false to disable.
