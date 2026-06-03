@@ -150,6 +150,12 @@ export default function MenuPage() {
       setCats(nextCats);
       setProds(nextProds);
       setCachedMenu({ cats: nextCats, prods: nextProds });
+      // The backend menu version hash also covers the settings row, so a
+      // version bump can mean a settings-only change (e.g. the service
+      // charge %). Refresh settings here too — reusing this existing poll
+      // path rather than adding a second update system — so the cart
+      // recalculates live without a browser refresh.
+      fetchSettings();
     } finally {
       refetchingRef.current = false;
     }

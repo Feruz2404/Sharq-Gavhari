@@ -1,17 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CartItem from '../../components/cart/CartItem.jsx';
 import CartSummary from '../../components/cart/CartSummary.jsx';
 import FinalSummaryModal from '../../components/cart/FinalSummaryModal.jsx';
 import LanguageSwitcher from '../../components/common/LanguageSwitcher.jsx';
 import { useCartStore } from '../../stores/cartStore.js';
+import { useSettingsStore } from '../../stores/settingsStore.js';
 import { useT } from '../../locales/useT.js';
 
 export default function TabletCartPage() {
   const t = useT();
   const items = useCartStore((s) => s.cartItems);
   const clearCart = useCartStore((s) => s.clearCart);
+  const settings = useSettingsStore((s) => s.settings);
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
   const [showFinal, setShowFinal] = useState(false);
+
+  // Ensure settings (including the service charge %) are loaded for the
+  // tablet cart even if the menu page hasn't fetched them yet.
+  useEffect(() => {
+    if (!settings) fetchSettings();
+  }, [settings, fetchSettings]);
 
   return (
     <div className="min-h-screen pb-28">

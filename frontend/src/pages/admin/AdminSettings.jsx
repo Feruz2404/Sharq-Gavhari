@@ -10,6 +10,10 @@ const LANGS = [
   { value: 'en', label: 'English' },
 ];
 
+// Quick-pick service charge percentages. Admins can still type any 0-100
+// value in the numeric input next to the presets.
+const SERVICE_CHARGE_PRESETS = [10, 15, 20, 25, 30];
+
 export default function AdminSettings() {
   const t = useT();
   const settings = useSettingsStore((s) => s.settings);
@@ -25,6 +29,7 @@ export default function AdminSettings() {
     phone: '',
     accent_color: '#D4AF37',
     default_language: 'uz',
+    service_charge_percent: 20,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -43,6 +48,10 @@ export default function AdminSettings() {
       phone: settings.phone || '',
       accent_color: settings.accent_color || '#D4AF37',
       default_language: settings.default_language || 'uz',
+      service_charge_percent:
+        settings.service_charge_percent != null
+          ? Number(settings.service_charge_percent)
+          : 20,
     }));
   }, [settings]);
 
@@ -61,6 +70,7 @@ export default function AdminSettings() {
         phone: f.phone || null,
         accent_color: f.accent_color,
         default_language: f.default_language,
+        service_charge_percent: Number(f.service_charge_percent) || 0,
       });
       // Re-fetch so the public menu and other consumers immediately see the
       // persisted row (logo / hero / global background) without an extra reload.
@@ -270,6 +280,37 @@ export default function AdminSettings() {
                     onChange={set('accent_color')}
                   />
                 </div>
+              </div>
+            </div>
+            <div>
+              <label className="label">{t('admin.serviceCharge')}</label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {SERVICE_CHARGE_PRESETS.map((p) => {
+                  const active = Number(f.service_charge_percent) === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => set('service_charge_percent')(p)}
+                      className={'pill ' + (active ? 'pill-active' : '')}
+                    >
+                      {p}%
+                    </button>
+                  );
+                })}
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  className="input w-24"
+                  value={f.service_charge_percent}
+                  onChange={set('service_charge_percent')}
+                  aria-label={t('admin.serviceCharge')}
+                />
+              </div>
+              <div className="text-[12px] text-white/45 mt-1.5">
+                {t('admin.serviceChargeHelper')}
               </div>
             </div>
           </section>

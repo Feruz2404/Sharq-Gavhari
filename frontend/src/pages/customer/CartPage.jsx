@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CartItem from '../../components/cart/CartItem.jsx';
 import CartSummary from '../../components/cart/CartSummary.jsx';
@@ -6,6 +6,7 @@ import FinalSummaryModal from '../../components/cart/FinalSummaryModal.jsx';
 import LanguageSwitcher from '../../components/common/LanguageSwitcher.jsx';
 import Icon from '../../components/common/Icon.jsx';
 import { useCartStore } from '../../stores/cartStore.js';
+import { useSettingsStore } from '../../stores/settingsStore.js';
 import { useT } from '../../locales/useT.js';
 
 // Safe-area-aware top inset for the sticky header. Tailwind arbitrary
@@ -18,7 +19,15 @@ export default function CartPage() {
   const navigate = useNavigate();
   const items = useCartStore((s) => s.cartItems);
   const clearCart = useCartStore((s) => s.clearCart);
+  const settings = useSettingsStore((s) => s.settings);
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
   const [showFinal, setShowFinal] = useState(false);
+
+  // Ensure settings (including the service charge %) are loaded even when a
+  // customer lands directly on /cart without first visiting the menu page.
+  useEffect(() => {
+    if (!settings) fetchSettings();
+  }, [settings, fetchSettings]);
 
   // Smart back — always client-side React Router navigation:
   //   1. Prefer navigate(-1) so the menu page re-uses its existing component

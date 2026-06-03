@@ -2,8 +2,8 @@
 //
 // Brand standard: use the STRAIGHT ASCII apostrophe (') for Uzbek words like
 // Qo'shish, O'chirish, Ko'rish, Bo'lim, So'm, Ma'lumot, To'lov, Ro'yxat, Yo'q.
-// Do NOT use curly or modifier-letter apostrophes (’ ‘ ʼ \u2018 \u2019 \u02BB).
-// Do NOT use literal `\u2018`-style sequences in JSX — JSX text does not
+// Do NOT use curly or modifier-letter apostrophes.
+// Do NOT use literal escape sequences in JSX — JSX text does not
 // interpret JS escape sequences.
 //
 // Strings are double-quoted so the embedded apostrophes are unambiguous and
@@ -70,6 +70,9 @@ export default {
     quantity: "Miqdor",
     note: "Izoh",
     total: "Jami",
+    productsTotal: "Mahsulotlar narxi",
+    serviceCharge: "Xizmat haqi",
+    finalTotal: "Yakuniy summa",
     table: "Stol",
     unavailable: "Mavjud emas",
     install: "O'rnatish",
@@ -128,6 +131,8 @@ export default {
     highQualityImagesSupported: "Yuqori sifatli JPG, PNG va WEBP rasmlari (15MB gacha) qo'llab-quvvatlanadi.",
     imageTooLarge: "Rasm hajmi juda katta. 15MB gacha rasm yuklang.",
     invalidImageType: "Noto'g'ri fayl turi. JPG, PNG yoki WEBP yuklang.",
+    serviceCharge: "Xizmat haqi (%)",
+    serviceChargeHelper: "Mijoz savatida mahsulotlar summasiga ushbu foiz qo'shiladi.",
     tables: "Stollar",
     logout: "Chiqish",
     isActive: "Aktiv",
