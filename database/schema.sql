@@ -87,6 +87,7 @@ create table if not exists settings (
   telegram text,
   default_language text not null default 'uz',
   accent_color text not null default '#D4AF37',
+  service_charge_percent numeric(5,2) not null default 20,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

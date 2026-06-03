@@ -13,6 +13,7 @@ const ALLOWED = new Set([
   'telegram',
   'default_language',
   'accent_color',
+  'service_charge_percent',
 ]);
 
 function sanitize(input) {
@@ -32,6 +33,16 @@ function sanitize(input) {
       out.background_image_url = v;
       continue;
     }
+    // Service charge percentage. Accept both snake_case and the camelCase
+    // alias, coerce to a number and clamp to a sane 0-100 range so a bad
+    // client value can never corrupt the row.
+    if (k === 'service_charge_percent' || k === 'serviceChargePercent') {
+      const n = Number(v);
+      out.service_charge_percent = Number.isFinite(n)
+        ? Math.min(100, Math.max(0, n))
+        : 20;
+      continue;
+    }
     if (ALLOWED.has(k)) out[k] = v;
   }
   return out;
@@ -47,6 +58,10 @@ function expand(row) {
     background_url: row.background_url || bg,
     background_image_url: row.background_image_url || bg,
     global_background_image_url: row.global_background_image_url || null,
+    service_charge_percent:
+      row.service_charge_percent != null
+        ? Number(row.service_charge_percent)
+        : 20,
   };
 }
 
@@ -54,7 +69,11 @@ function expand(row) {
 // complains about an unknown column, retry without that field so the rest
 // of the save still succeeds. Iterates so multiple optional columns can be
 // stripped in turn.
-const OPTIONAL_COLUMNS = ['background_image_url', 'global_background_image_url'];
+const OPTIONAL_COLUMNS = [
+  'background_image_url',
+  'global_background_image_url',
+  'service_charge_percent',
+];
 
 async function safeWrite(body, idFilter) {
   const exec = (b) =>

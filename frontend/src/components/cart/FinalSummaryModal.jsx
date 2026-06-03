@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../common/Icon.jsx';
 import { useCartStore } from '../../stores/cartStore.js';
+import { useSettingsStore } from '../../stores/settingsStore.js';
 import { formatPrice } from '../../utils/formatPrice.js';
 import { useT } from '../../locales/useT.js';
 
@@ -25,8 +26,18 @@ const sheetTransition = {
 export default function FinalSummaryModal({ open, onClose }) {
   const t = useT();
   const items = useCartStore((s) => s.cartItems);
-  const total = useCartStore((s) => s.getTotal());
+  const subtotal = useCartStore((s) => s.getTotal());
   const tableNumber = useCartStore((s) => s.tableNumber);
+  const settings = useSettingsStore((s) => s.settings);
+
+  // Service charge percentage from admin settings (never hardcoded). Falls
+  // back to 20 only while settings are still loading.
+  const pct =
+    settings && settings.service_charge_percent != null
+      ? Number(settings.service_charge_percent)
+      : 20;
+  const serviceCharge = subtotal * pct / 100;
+  const grandTotal = subtotal + serviceCharge;
 
   return (
     <AnimatePresence>
@@ -64,9 +75,21 @@ export default function FinalSummaryModal({ open, onClose }) {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between font-medium border-t border-white/10 pt-2">
-              <span>{t('common.total')}</span>
-              <span className="gold-text text-lg">{formatPrice(total)}</span>
+            <div className="border-t border-white/10 pt-2 grid gap-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-white/70">{t('common.productsTotal')}</span>
+                <span className="tabular-nums">{formatPrice(subtotal)}</span>
+              </div>
+              {pct > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/70">{t('common.serviceCharge')} ({pct}%)</span>
+                  <span className="tabular-nums">{formatPrice(serviceCharge)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-medium pt-1">
+                <span>{t('common.finalTotal')}</span>
+                <span className="gold-text text-lg">{formatPrice(grandTotal)}</span>
+              </div>
             </div>
             <p className="text-center text-white/85 text-sm bg-gold/10 border border-gold/30 rounded-xl px-3 py-3">
               {t('common.finalMessage')}

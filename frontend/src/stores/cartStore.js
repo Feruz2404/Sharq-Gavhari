@@ -46,6 +46,22 @@ export const useCartStore = create(persist(
     getTotal: () => get().cartItems.reduce((s, i) => s + i.price * i.quantity, 0),
     getItemCount: () => get().cartItems.reduce((s, i) => s + i.quantity, 0),
 
+    // Service charge helpers. The percentage is owned by the admin settings
+    // row (settings.service_charge_percent) and is never hardcoded here — the
+    // caller passes the current percentage so the cart stays a pure local
+    // store.
+    //   serviceCharge = subtotal * percentage / 100
+    //   grandTotal    = subtotal + serviceCharge
+    getServiceCharge: (percent = 0) => {
+      const pct = Number(percent) || 0;
+      return get().getTotal() * pct / 100;
+    },
+    getGrandTotal: (percent = 0) => {
+      const pct = Number(percent) || 0;
+      const subtotal = get().getTotal();
+      return subtotal + (subtotal * pct / 100);
+    },
+
     // Intentionally NO submitCart / sendOrder. Cart is local-only.
   }),
   { name: 'sg_cart' }
